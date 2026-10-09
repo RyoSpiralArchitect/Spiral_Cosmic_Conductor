@@ -38,6 +38,8 @@ class Handler(BaseHTTPRequestHandler):
         view = json.loads(req["messages"][1]["content"])["view"]
         corrupt = {"workers"} if Handler.mode == "noisy_first" and req["model"] == "fixture-a" else set()
         reply = ScriptedWorker("http-fixture", corrupt=corrupt).propose(Dispatch("unused", view, "http-fixture", "proposer"), 2)
+        if Handler.mode == "revise_missing":
+            reply.patch["ops"][0]["op"] = "revise_claim"
         content = json.dumps(reply.patch)
         if Handler.mode == "bad_json":
             content = "not a JSON object"
@@ -90,6 +92,24 @@ class LocalAdapterTests(unittest.TestCase):
         self.assertEqual(req["response_format"], {"type": "json_object"})
         self.assertNotIn("tools", req)
         self.assertNotIn(self.dispatch.ticket, json.dumps(req))
+        target = json.loads(req["messages"][1]["content"])["target_contract"]
+        self.assertEqual(target, {"claim_id": "workers", "current_status": "missing",
+                                  "required_op": "add_claim", "required_evidence_ids": ["current"]})
+
+    def test_wrong_operation_is_not_silently_rewritten(self):
+        Handler.mode = "revise_missing"
+        reply = self.worker.propose(self.dispatch, 2)
+        self.assertEqual(reply.patch["ops"][0]["op"], "revise_claim")
+        self.assertEqual(self.ledger.apply(self.dispatch.ticket, reply.patch).reason, "claim_does_not_exist")
+        self.assertEqual(self.ledger.snapshot()["workers"]["status"], "missing")
+
+    def test_unsupported_scope_or_role_never_reaches_transport(self):
+        for role, writes in (("proposer", {"workers", "per_worker"}), ("critic", {"workers"})):
+            with self.subTest(role=role):
+                dispatch = self.ledger.issue("test-local", role, writes)
+                with self.assertRaises(AdapterError):
+                    self.worker.propose(dispatch, 2)
+        self.assertEqual(Handler.seen, [])
 
     def test_configurable_json_mode_off(self):
         w = LocalChatWorker("test-local", self.base, "fixture-model", json_mode=False)
@@ -160,6 +180,13 @@ class LocalAdapterTests(unittest.TestCase):
         out = Conductor(self.ledger, fast, careful).run()
         self.assertTrue(out["complete"])
         self.assertEqual(out["usage"]["prompt_tokens"], 123 * 6)
+        contracts = {data["target_contract"]["claim_id"]: data["target_contract"]
+                     for _, request in Handler.seen
+                     for data in [json.loads(request["messages"][1]["content"])]}
+        for cid in ("capacity", "can_deliver"):
+            self.assertEqual(contracts[cid]["required_evidence_ids"], [])
+            self.assertEqual(contracts[cid]["required_op"], "add_claim")
+            self.assertNotIn("value", contracts[cid])
 
     def test_heterogeneous_model_repair_over_http(self):
         from conductor import Conductor
@@ -171,3 +198,8 @@ class LocalAdapterTests(unittest.TestCase):
         self.assertEqual(out["workers_used"], ["local-careful", "local-fast"])
         self.assertEqual(out["usage"]["calls"], 9)
         self.assertIs(out["results"]["can_deliver"], True)
+        repairs = [json.loads(request["messages"][1]["content"])["target_contract"]
+                   for _, request in Handler.seen if request["model"] == "fixture-b"]
+        self.assertEqual({r["claim_id"] for r in repairs}, {"workers", "capacity", "can_deliver"})
+        self.assertTrue(all(r["current_status"] == "invalidated" and r["required_op"] == "revise_claim"
+                            for r in repairs))
