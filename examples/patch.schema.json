@@ -1,0 +1,57 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ops"
+  ],
+  "properties": {
+    "ops": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "op",
+          "claim_id",
+          "value",
+          "evidence_ids",
+          "reason"
+        ],
+        "properties": {
+          "op": {
+            "type": "string",
+            "enum": [
+              "add_claim",
+              "revise_claim",
+              "attach_evidence",
+              "request_backtrack"
+            ]
+          },
+          "claim_id": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "integer",
+              "boolean",
+              "string",
+              "null"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      }
+    }
+  }
+}

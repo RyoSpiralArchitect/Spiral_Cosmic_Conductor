@@ -1,0 +1,18 @@
+{
+  "fast": {
+    "name": "local-fast",
+    "base_url": "http://127.0.0.1:8080/v1",
+    "model": "YOUR_FAST_MODEL_ID",
+    "cost_units": 1,
+    "max_output_tokens": 1024,
+    "json_mode": true
+  },
+  "careful": {
+    "name": "local-careful",
+    "base_url": "http://127.0.0.1:8081/v1",
+    "model": "YOUR_CAREFUL_MODEL_ID",
+    "cost_units": 3,
+    "max_output_tokens": 1024,
+    "json_mode": true
+  }
+}

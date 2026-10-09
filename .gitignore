@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.env
+.env.*
+!.env.example
+*.egg-info/
+build/
+dist/
+runs/
+examples/models.local.json
+*.sqlite-wal
+*.sqlite-shm
+.DS_Store

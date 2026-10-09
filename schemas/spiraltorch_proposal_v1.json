@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SpiralTorch Refract Proposal v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "target",
+    "backend",
+    "operation",
+    "precision",
+    "reason",
+    "authorized",
+    "executed",
+    "status"
+  ],
+  "properties": {
+    "target": {
+      "type": "string"
+    },
+    "backend": {
+      "enum": [
+        "cpu",
+        "wgpu",
+        "hip"
+      ]
+    },
+    "operation": {
+      "enum": [
+        "matmul",
+        "layer_norm",
+        "attention",
+        "softmax"
+      ]
+    },
+    "precision": {
+      "enum": [
+        "f32",
+        "f16",
+        "bf16"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "authorized": {
+      "const": false
+    },
+    "executed": {
+      "const": false
+    },
+    "status": {
+      "const": "NOT_EXECUTED"
+    }
+  }
+}

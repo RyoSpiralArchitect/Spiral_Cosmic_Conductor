@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MeaningCapsule v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "uid",
+    "sender",
+    "receiver",
+    "claim_id",
+    "value",
+    "state",
+    "evidence_ids",
+    "audit_hash",
+    "note"
+  ],
+  "properties": {
+    "uid": {
+      "type": "string"
+    },
+    "sender": {
+      "type": "string"
+    },
+    "receiver": {
+      "type": "string"
+    },
+    "claim_id": {
+      "type": "string"
+    },
+    "value": {
+      "type": [
+        "boolean",
+        "integer",
+        "string",
+        "null"
+      ]
+    },
+    "state": {
+      "enum": [
+        "candidate",
+        "verified",
+        "refused",
+        "invalidated"
+      ]
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 8
+    },
+    "audit_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "note": {
+      "type": "string",
+      "maxLength": 300
+    }
+  }
+}

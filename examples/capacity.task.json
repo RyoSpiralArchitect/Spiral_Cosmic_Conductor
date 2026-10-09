@@ -1,0 +1,79 @@
+{
+  "id": "capacity-check",
+  "goal": "Can the named site meet demand with the current staffing? Use the current source, not the archived roster.",
+  "slots": [
+    {
+      "id": "workers",
+      "kind": "fact",
+      "deps": [],
+      "source": "current",
+      "field": "workers"
+    },
+    {
+      "id": "per_worker",
+      "kind": "fact",
+      "deps": [],
+      "source": "current",
+      "field": "per_worker"
+    },
+    {
+      "id": "demand",
+      "kind": "fact",
+      "deps": [],
+      "source": "current",
+      "field": "demand"
+    },
+    {
+      "id": "site_name",
+      "kind": "fact",
+      "deps": [],
+      "source": "site",
+      "field": "site_name"
+    },
+    {
+      "id": "capacity",
+      "kind": "mul",
+      "deps": [
+        "workers",
+        "per_worker"
+      ]
+    },
+    {
+      "id": "can_deliver",
+      "kind": "ge",
+      "deps": [
+        "capacity",
+        "demand"
+      ]
+    }
+  ],
+  "sources": {
+    "archived": {
+      "facts": {
+        "workers": 3
+      },
+      "text": "Previous workers: 3.",
+      "title": "Archived fixture roster, not authoritative for this task"
+    },
+    "current": {
+      "facts": {
+        "demand": 240,
+        "per_worker": 75,
+        "workers": 4
+      },
+      "text": "Current workers: 4. Each worker processes 75 items. Requested items: 240.",
+      "title": "Current fixture roster"
+    },
+    "site": {
+      "facts": {
+        "site_name": "Beppu"
+      },
+      "text": "Site name is Beppu.",
+      "title": "Independent site record"
+    }
+  },
+  "targets": [
+    "can_deliver",
+    "site_name"
+  ]
+}
