@@ -74,7 +74,8 @@ checked against their original integrity manifests before extracting this fixtur
 
 `test_recorded_live_exchanges_replay_with_historical_request_hashes` reconstructs
 the historical message encoding (without the newer value specification and failure
-feedback) and checks it against each recorded request SHA-256 before returning its captured response.
+feedback, using the original `json_object` response format) and checks it against
+each recorded request SHA-256 before returning its captured response.
 All 8 executions must reproduce their completion status, call count, results,
 patch rejections, and dependency invalidations through the real ledger and router.
 The current prompt contains additional repair metadata, so these hashes describe
@@ -114,6 +115,21 @@ The follow-up repair makes these boundaries explicit:
   the error. Exception text is omitted. Output storage must remain writable; abrupt
   process termination such as SIGKILL cannot execute this finalization.
 
+A first live qualification of these changes completed 3/4 cases in 27 calls.
+Artifact export succeeded for all four, including the incomplete injected case.
+However, OpenAI still returned duplicate evidence IDs once and an unauthorized
+fact-source ID for a derived repair once. Both outputs were rejected without
+normalization; the latter exhausted the target's two attempts.
+
+The default cloud pilot therefore also sends a per-dispatch `json_schema` response
+format with `strict: true`. The schema allows exactly one operation and fixes the
+operation, target ID, and evidence list to the existing dispatch contract. It leaves
+the integer/boolean/string value and brief reason to the model. It does not encode
+an expected answer, compute one, or rewrite responses. The local chat adapter keeps
+its existing JSON-mode setting because local-server schema support is not assumed.
+The ledger still checks every response, and provider rejection/refusal/truncation
+is recorded without fallback or transport retry. The plan records the response format.
+
 `provider_failures_2026-10-13.json` preserves four actual responses from the failed
 pilot. Regression tests check early rejection, unchanged bad output, scoped repair
 instructions, independent value verification, and successful artifact export even
@@ -136,5 +152,6 @@ model performance.
 Protocol references consulted for this pilot:
 
 - [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)
-- [Mistral JSON mode](https://docs.mistral.ai/studio/conversations/structured-output/json_mode)
+- [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
+- [Mistral custom Structured Outputs](https://docs.mistral.ai/studio/conversations/structured-output/custom)
 - [Gemini OpenAI compatibility](https://ai.google.dev/gemini-api/docs/openai)

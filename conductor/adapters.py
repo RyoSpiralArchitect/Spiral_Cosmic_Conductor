@@ -108,13 +108,7 @@ The host still checks all values; do not invent an answer from the failure label
 """
 
 
-def worker_messages(dispatch: Dispatch) -> list[dict[str, str]]:
-    """Describe one proposal's wire contract without computing its answer.
-
-    Missing claims have entries in the view too. Make their required operation
-    explicit rather than asking each model to infer existence from placeholders.
-    The authority ticket stays local and the ledger still validates every reply.
-    """
+def _target_contract(dispatch: Dispatch) -> dict[str, Any]:
     view = dispatch.view
     if len(view["write_ids"]) != 1:
         raise AdapterError("Chat worker expects one target")
@@ -130,6 +124,45 @@ def worker_messages(dispatch: Dispatch) -> list[dict[str, str]]:
                                if slot.kind == "fact" else {"kind": slot.kind, "deps": list(slot.deps)})}
     if cid in view.get("repair_feedback", {}):
         contract["repair_feedback"] = view["repair_feedback"][cid]
+    return contract
+
+
+def worker_patch_schema(dispatch: Dispatch) -> dict[str, Any]:
+    """Constrain dispatch metadata while leaving the proposed value unconstrained.
+
+    Schema support is a transport option, never authority to commit or verify.
+    Fact evidence has exactly one designated ID; derived evidence is empty.
+    """
+    contract = _target_contract(dispatch)
+    refs = contract["required_evidence_ids"]
+    evidence_item: dict[str, Any] = {"type": "string"}
+    if refs:
+        evidence_item["enum"] = refs
+    return {
+        "type": "object", "additionalProperties": False, "required": ["ops"],
+        "properties": {"ops": {"type": "array", "minItems": 1, "maxItems": 1, "items": {
+            "type": "object", "additionalProperties": False,
+            "required": ["op", "claim_id", "value", "evidence_ids", "reason"],
+            "properties": {
+                "op": {"type": "string", "enum": [contract["required_op"]]},
+                "claim_id": {"type": "string", "enum": [contract["claim_id"]]},
+                "value": {"anyOf": [{"type": "integer"}, {"type": "boolean"}, {"type": "string"}]},
+                "evidence_ids": {"type": "array", "items": evidence_item,
+                                 "minItems": len(refs), "maxItems": len(refs)},
+                "reason": {"type": "string"},
+            }}}},
+    }
+
+
+def worker_messages(dispatch: Dispatch) -> list[dict[str, str]]:
+    """Describe one proposal's wire contract without computing its answer.
+
+    Missing claims have entries in the view too. Make their required operation
+    explicit rather than asking each model to infer existence from placeholders.
+    The authority ticket stays local and the ledger still validates every reply.
+    """
+    view = dispatch.view
+    contract = _target_contract(dispatch)
     user_data = {"view": view, "patch_schema": PATCH_SCHEMA, "target_contract": contract}
     return [{"role": "system", "content": SYSTEM_PROMPT + DISPATCH_PROMPT + VALUE_PROMPT},
             {"role": "user", "content": canonical(user_data)}]

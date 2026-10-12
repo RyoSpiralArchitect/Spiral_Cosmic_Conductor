@@ -110,6 +110,38 @@ class ProviderPilotTests(unittest.TestCase):
             self.assertEqual(result["completed_cases"][-1]["invalidated_claim_events"], 3)
             row = json.loads((Path(tmp) / "pilot/01_mistral_natural/exchanges.jsonl").read_text().splitlines()[0])
             self.assertNotIn("target_contract", json.loads(row["request"]["messages"][1]["content"]))
+            self.assertEqual(row["request"]["response_format"], {"type": "json_object"})
+
+    def test_schema_locks_dispatch_metadata_but_not_the_answer(self):
+        # Inspect real transport payloads for all three providers and both slot kinds.
+        for provider in PROVIDERS:
+            worker = ProviderWorker(provider, "fast", "simulated", CallBudget(), self.rows.append)
+            for cid, refs in (("workers", ["current"]), ("capacity", [])):
+                for status, operation in (("missing", "add_claim"), ("invalidated", "revise_claim")):
+                    with self.subTest(provider=provider, target=cid, status=status):
+                        dispatch = self.ledger.issue(worker.name, "repairer", {cid})
+                        dispatch.view["claims"][cid]["status"] = status
+                        response = canonical({"choices": [{"finish_reason": "stop", "message": {
+                            "content": canonical({"ops": [{"op": operation, "claim_id": cid,
+                                "value": 999, "evidence_ids": refs, "reason": "Candidate only."}]})}}]}).encode()
+                        with patch.object(worker, "_transport", return_value=response):
+                            reply = worker.propose(dispatch, 1)
+                        fmt = self.rows[-1]["request"]["response_format"]
+                        self.assertEqual(fmt["type"], "json_schema")
+                        self.assertTrue(fmt["json_schema"]["strict"])
+                        schema = fmt["json_schema"]["schema"]
+                        self.assertFalse(schema["additionalProperties"])
+                        ops = schema["properties"]["ops"]
+                        self.assertEqual((ops["minItems"], ops["maxItems"]), (1, 1))
+                        fields = ops["items"]["properties"]
+                        self.assertEqual(fields["op"]["enum"], [operation])
+                        self.assertEqual(fields["claim_id"]["enum"], [cid])
+                        evidence = fields["evidence_ids"]
+                        self.assertEqual((evidence["minItems"], evidence["maxItems"]), (len(refs), len(refs)))
+                        self.assertEqual(evidence["items"].get("enum", []), refs)
+                        self.assertEqual(fields["value"], {"anyOf": [
+                            {"type": "integer"}, {"type": "boolean"}, {"type": "string"}]})
+                        self.assertEqual(reply.patch["ops"][0]["value"], 999)
 
     def test_recorded_live_exchanges_replay_with_historical_request_hashes(self):
         # Preserve the frozen prompt condition; the current repair prompt adds metadata.
@@ -125,6 +157,7 @@ class ProviderPilotTests(unittest.TestCase):
                     recorded = remaining.pop(0)
                     self.assertEqual(worker.provider, recorded["provider"])
                     historical = json.loads(body)
+                    historical["response_format"] = {"type": "json_object"}
                     data = json.loads(historical["messages"][1]["content"])
                     data["view"].pop("repair_feedback", None)
                     if "target_contract" in data:

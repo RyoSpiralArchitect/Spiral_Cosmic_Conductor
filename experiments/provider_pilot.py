@@ -23,7 +23,8 @@ from typing import Any, Callable
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from conductor.adapters import AdapterError, ScriptedWorker, SYSTEM_PROMPT, _NoRedirect, worker_messages
+from conductor.adapters import (AdapterError, ScriptedWorker, SYSTEM_PROMPT, _NoRedirect,
+                                worker_messages, worker_patch_schema)
 from conductor.cosmic import run_cosmic, verify_bundle, write_json
 from conductor.runtime import Limits
 from conductor.scenarios import capacity_task
@@ -126,14 +127,17 @@ class ProviderWorker:
             raise AdapterError("No request time remains")
         if self.explicit_contract:
             messages = worker_messages(dispatch)
+            response_format = {"type": "json_schema", "json_schema": {
+                "name": "scoped_patch", "strict": True, "schema": worker_patch_schema(dispatch)}}
         else:
             # Explicit historical comparison only; normal runs use the repaired path.
             messages = [{"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user", "content": canonical({"view": dispatch.view, "patch_schema": PATCH_SCHEMA})}]
+            response_format = {"type": "json_object"}
         payload: dict[str, Any] = {
             "model": self.spec.model, "stream": False, "temperature": 0,
             "messages": messages,
-            "response_format": {"type": "json_object"},
+            "response_format": response_format,
         }
         payload["max_completion_tokens" if self.provider == "openai" else "max_tokens"] = self.max_output_tokens
         if self.provider == "openai":
@@ -209,6 +213,7 @@ def run_pilot(out: Path, mode: str, *, explicit_contract: bool = True) -> dict[s
     source_hashes = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
                      for p in [*sorted((ROOT / "conductor").glob("*.py")), Path(__file__).resolve()]}
     plan = {"mode": mode, "explicit_dispatch_contract": explicit_contract,
+            "response_format": "json_schema" if explicit_contract else "json_object",
             "providers": {k: asdict(v) for k, v in PROVIDERS.items()},
             "limits_per_case": asdict(limits), "maximum_total_generation_calls": 36,
             "transport_retries": 0, "speculation": True, "source_sha256": source_hashes,
