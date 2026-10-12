@@ -1,0 +1,678 @@
+{
+  "format_version": 1,
+  "recorded_on": "2026-10-10",
+  "scope": "Offline replay of returned model text; not a new live run or a provider benchmark.",
+  "cases": [
+    {
+      "name": "live/01_mistral_natural",
+      "fast": "mistral",
+      "careful": "openai",
+      "explicit_contract": false,
+      "inject_fault": false,
+      "capture_sha256": {
+        "plan.json": "0f3483daf4e29f3da94b7b6777ebe4692ea2cc6f2f996ac7c6ac3a9b700a15c7",
+        "exchanges.jsonl": "e83894c28cd32215e4202f5fed58cb371a2b062ef4086791af8906f358371716",
+        "report.json": "f3a6eb202545228e0d3fcb06c14e4b5f13533bb3d80e057271c75a6c3cd9994d",
+        "events.jsonl": "546c921dd97d757cd21fb38d614e7f447983729bd6f1c15bff44fb736824d889"
+      },
+      "expected_report": {
+        "complete": false,
+        "stop_reason": "attempt_limit",
+        "results": {},
+        "workers_used": [
+          "mistral-fast",
+          "openai-careful"
+        ],
+        "verification_failures": 0,
+        "invalidated_claim_events": 0
+      },
+      "expected_rejections": [
+        "claim_does_not_exist",
+        "claim_does_not_exist"
+      ],
+      "expected_invalidations": [],
+      "exchanges": [
+        {
+          "provider": "mistral",
+          "request_sha256": "1a191b30f74cec8baace5336142a192af6758d7051bbf7a947eabb1fb8e0991f",
+          "raw_content": "{\"ops\": [{\"claim_id\": \"workers\", \"evidence_ids\": [\"current\"], \"op\": \"revise_claim\", \"reason\": \"Current fixture roster states 4 workers are staffed.\", \"value\": 4}]}",
+          "usage": {
+            "prompt_tokens": 536,
+            "completion_tokens": 52
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "78ed83d44a0ffaf32ee1d82bdabcc93ae0833631206bbb1367f9c61b003e2d8c",
+          "raw_content": "{\"ops\":[{\"op\":\"revise_claim\",\"claim_id\":\"workers\",\"value\":4,\"evidence_ids\":[\"current\"],\"reason\":\"The current source states there are 4 workers.\"}]}",
+          "usage": {
+            "prompt_tokens": 490,
+            "completion_tokens": 40
+          }
+        }
+      ]
+    },
+    {
+      "name": "live/02_openai_natural",
+      "fast": "openai",
+      "careful": "gemini",
+      "explicit_contract": false,
+      "inject_fault": false,
+      "capture_sha256": {
+        "plan.json": "0f3483daf4e29f3da94b7b6777ebe4692ea2cc6f2f996ac7c6ac3a9b700a15c7",
+        "exchanges.jsonl": "9e6397f30f747e0ac137a6b3c9d1d702102e10eb0b1b087707f70abea25e82fd",
+        "report.json": "0b46c49999334f68e7bff362bccb5e38253e58d62e37d80e943dc93edba82a3b",
+        "events.jsonl": "3a38c8a509b624e5c746f59562f2b7e78e1d71cc00cb7ea2a0acacc89699d707"
+      },
+      "expected_report": {
+        "complete": false,
+        "stop_reason": "budget_exhausted",
+        "results": {
+          "site_name": "Beppu"
+        },
+        "workers_used": [
+          "gemini-careful",
+          "openai-fast"
+        ],
+        "verification_failures": 0,
+        "invalidated_claim_events": 0
+      },
+      "expected_rejections": [
+        "claim_does_not_exist",
+        "claim_does_not_exist",
+        "claim_does_not_exist",
+        "claim_does_not_exist"
+      ],
+      "expected_invalidations": [],
+      "exchanges": [
+        {
+          "provider": "openai",
+          "request_sha256": "29a2e1aacc69412ae7011d8af045d178f25c2d941e6db7faa99864f504875d2e",
+          "raw_content": "{\"ops\":[{\"op\":\"revise_claim\",\"claim_id\":\"workers\",\"value\":4,\"evidence_ids\":[\"current\"],\"reason\":\"The current source states there are 4 workers.\"}]}",
+          "usage": {
+            "prompt_tokens": 490,
+            "completion_tokens": 40
+          }
+        },
+        {
+          "provider": "gemini",
+          "request_sha256": "92cc8d44c0448c24ef7b8a69899b30f636f4db4d2a0e7f4cebee883a63bc7c14",
+          "raw_content": "{\n  \"ops\": [\n    {\n      \"op\": \"add_claim\",\n      \"claim_id\": \"workers\",\n      \"value\": 4,\n      \"evidence_ids\": [\n        \"current\"\n      ],\n      \"reason\": \"The 'workers' fact is directly stated as 4 in the 'current' source.\"\n    }\n  ]\n}",
+          "usage": {
+            "prompt_tokens": 516,
+            "completion_tokens": 86
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "3061f30b6068117fdd084c5ee2680ea8e90e094aa070310e74bfa5cbfc9714c6",
+          "raw_content": "{\"ops\":[{\"op\":\"revise_claim\",\"claim_id\":\"per_worker\",\"value\":75,\"evidence_ids\":[\"current\"],\"reason\":\"The current source states each worker processes 75 items, so the per_worker capacity is 75.\"}]}",
+          "usage": {
+            "prompt_tokens": 495,
+            "completion_tokens": 51
+          }
+        },
+        {
+          "provider": "gemini",
+          "request_sha256": "c2b0cf242847c612f922084419f635397ac023627810b378e57d14930ed917e4",
+          "raw_content": "{\n  \"ops\": [\n    {\n      \"op\": \"add_claim\",\n      \"claim_id\": \"per_worker\",\n      \"value\": 75,\n      \"evidence_ids\": [\n        \"current\"\n      ],\n      \"reason\": \"The 'per_worker' value is directly stated in the 'current' source text.\"\n    }\n  ]\n}",
+          "usage": {
+            "prompt_tokens": 526,
+            "completion_tokens": 89
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "0f355aeb705c2e647f8b8d513ecad3d0777cb4f207bfdc307e22fb09255a81f1",
+          "raw_content": "{\"ops\":[{\"op\":\"revise_claim\",\"claim_id\":\"demand\",\"value\":240,\"evidence_ids\":[\"current\"],\"reason\":\"The current demand is explicitly stated as 240 items in the source text.\"}]}",
+          "usage": {
+            "prompt_tokens": 495,
+            "completion_tokens": 46
+          }
+        },
+        {
+          "provider": "gemini",
+          "request_sha256": "3e374bd4d8927e7e780c08316ba00794d79032b52ed862d4632ba60237324a21",
+          "raw_content": "{\n  \"ops\": [\n    {\n      \"op\": \"add_claim\",\n      \"claim_id\": \"demand\",\n      \"value\": 240,\n      \"evidence_ids\": [\n        \"current\"\n      ],\n      \"reason\": \"The demand is directly stated as 'Requested items: 240' in the current source.\"\n    }\n  ]\n}",
+          "usage": {
+            "prompt_tokens": 516,
+            "completion_tokens": 90
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "a72530249a87608711a4c5b6751a019c73b320576bf82641fd0e9e006d0f852e",
+          "raw_content": "{\"ops\":[{\"op\":\"add_claim\",\"claim_id\":\"site_name\",\"value\":\"Beppu\",\"evidence_ids\":[\"site\"],\"reason\":\"The site name is explicitly stated as Beppu in the source text.\"}]}",
+          "usage": {
+            "prompt_tokens": 475,
+            "completion_tokens": 45
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "12071bc07c4b9751fdc7152b28a85ac0e9dcdb67cb8e21206751ef9fda5740e1",
+          "raw_content": "{\"ops\":[{\"op\":\"revise_claim\",\"claim_id\":\"capacity\",\"value\":300,\"evidence_ids\":[\"current\"],\"reason\":\"Capacity is calculated as workers (4) multiplied by per_worker (75), resulting in 300.\"}]}",
+          "usage": {
+            "prompt_tokens": 671,
+            "completion_tokens": 50
+          }
+        },
+        {
+          "provider": "gemini",
+          "request_sha256": "57605bceb2727b2d2531c5ae781330dac003092c793a6e986c5a12b2970774eb",
+          "raw_content": "{\n  \"ops\": [\n    {\n      \"op\": \"add_claim\",\n      \"claim_id\": \"capacity\",\n      \"value\": 300,\n      \"evidence_ids\": [],\n      \"reason\": \"The capacity is calculated by multiplying the number of workers by the items processed per worker (4 * 75 = 300).\"\n    }\n  ]\n}",
+          "usage": {
+            "prompt_tokens": 707,
+            "completion_tokens": 90
+          }
+        }
+      ]
+    },
+    {
+      "name": "live/03_gemini_natural",
+      "fast": "gemini",
+      "careful": "mistral",
+      "explicit_contract": false,
+      "inject_fault": false,
+      "capture_sha256": {
+        "plan.json": "0f3483daf4e29f3da94b7b6777ebe4692ea2cc6f2f996ac7c6ac3a9b700a15c7",
+        "exchanges.jsonl": "cc3634ec2ea73bd6ea92e417ac9be0ed9f08984c7d7f0027b47529875e1d5811",
+        "report.json": "fd3eb8af4fd08d934f0d88916ec9ff8e28067683d4a71edccbe5e02ae03392c4",
+        "events.jsonl": "7829dba4457c779c211ce8ca90d94fe716dd469df254b1eb143ce2609990253c"
+      },
+      "expected_report": {
+        "complete": false,
+        "stop_reason": "attempt_limit",
+        "results": {},
+        "workers_used": [
+          "gemini-fast",
+          "mistral-careful"
+        ],
+        "verification_failures": 0,
+        "invalidated_claim_events": 0
+      },
+      "expected_rejections": [
+        "claim_does_not_exist",
+        "claim_does_not_exist"
+      ],
+      "expected_invalidations": [],
+      "exchanges": [
+        {
+          "provider": "gemini",
+          "request_sha256": "7eb3e20903adc8772e6c98329410732cf00e5491aa688128a36771a687aa8892",
+          "raw_content": "{\n  \"ops\": [\n    {\n      \"op\": \"add_claim\",\n      \"claim_id\": \"workers\",\n      \"value\": 4,\n      \"evidence_ids\": [\n        \"current\"\n      ],\n      \"reason\": \"The number of workers is directly stated in the 'current' source.\"\n    }\n  ]\n}",
+          "usage": {
+            "prompt_tokens": 516,
+            "completion_tokens": 82
+          }
+        },
+        {
+          "provider": "gemini",
+          "request_sha256": "903544a76a713f4a3d19e34cf3714342cdcab08058011dbbdcf13b5748e2020a",
+          "raw_content": "{\n  \"ops\": [\n    {\n      \"op\": \"add_claim\",\n      \"claim_id\": \"per_worker\",\n      \"value\": 75,\n      \"evidence_ids\": [\n        \"current\"\n      ],\n      \"reason\": \"The 'per_worker' value is directly stated in the 'current' source text.\"\n    }\n  ]\n}",
+          "usage": {
+            "prompt_tokens": 526,
+            "completion_tokens": 89
+          }
+        },
+        {
+          "provider": "gemini",
+          "request_sha256": "f97349d6b9c7d06bcae0a64461d111f35bdd9f06a9c9f3c5a1e8d361e868bf4d",
+          "raw_content": "{\n  \"ops\": [\n    {\n      \"op\": \"revise_claim\",\n      \"claim_id\": \"demand\",\n      \"value\": 240,\n      \"evidence_ids\": [\n        \"current\"\n      ],\n      \"reason\": \"The demand is directly stated as 240 in the 'current' source.\"\n    }\n  ]\n}",
+          "usage": {
+            "prompt_tokens": 516,
+            "completion_tokens": 87
+          }
+        },
+        {
+          "provider": "mistral",
+          "request_sha256": "6deaa1ce3c193e36ca2f7a734be93098579aecb4d24f673ea1f5f2fc6eeafcea",
+          "raw_content": "{\"ops\": [{\"claim_id\": \"demand\", \"evidence_ids\": [\"current\"], \"op\": \"revise_claim\", \"reason\": \"Current fixture roster states demand of 240 items.\", \"value\": 240}]}",
+          "usage": {
+            "prompt_tokens": 537,
+            "completion_tokens": 55
+          }
+        }
+      ]
+    },
+    {
+      "name": "live/04_injected_repair",
+      "fast": "mistral",
+      "careful": "openai",
+      "explicit_contract": false,
+      "inject_fault": true,
+      "capture_sha256": {
+        "plan.json": "0f3483daf4e29f3da94b7b6777ebe4692ea2cc6f2f996ac7c6ac3a9b700a15c7",
+        "exchanges.jsonl": "7d9fdbc3bd37c1bb2d57ecc918f356555d8f061f468b7f1b3ce58ab6c6e57a47",
+        "report.json": "4a44104eea3189458dc5979acc342fab25d151f2e8849010a74f5db3227adee7",
+        "events.jsonl": "2dbfd4bc4f5796e7d02c36e499b80892e6a4306749b52337d71d0039f8a1681f"
+      },
+      "expected_report": {
+        "complete": false,
+        "stop_reason": "attempt_limit",
+        "results": {},
+        "workers_used": [
+          "mistral-fast",
+          "openai-careful"
+        ],
+        "verification_failures": 0,
+        "invalidated_claim_events": 0
+      },
+      "expected_rejections": [
+        "claim_does_not_exist",
+        "claim_does_not_exist"
+      ],
+      "expected_invalidations": [],
+      "exchanges": [
+        {
+          "provider": "mistral",
+          "request_sha256": "1a191b30f74cec8baace5336142a192af6758d7051bbf7a947eabb1fb8e0991f",
+          "raw_content": "{\"ops\": [{\"claim_id\": \"workers\", \"evidence_ids\": [\"current\"], \"op\": \"revise_claim\", \"reason\": \"Current fixture roster states 4 workers are staffed.\", \"value\": 4}]}",
+          "usage": {
+            "prompt_tokens": 536,
+            "completion_tokens": 52
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "78ed83d44a0ffaf32ee1d82bdabcc93ae0833631206bbb1367f9c61b003e2d8c",
+          "raw_content": "{\"ops\":[{\"op\":\"revise_claim\",\"claim_id\":\"workers\",\"value\":4,\"evidence_ids\":[\"current\"],\"reason\":\"The current source states there are 4 workers.\"}]}",
+          "usage": {
+            "prompt_tokens": 490,
+            "completion_tokens": 40
+          }
+        }
+      ]
+    },
+    {
+      "name": "live-explicit-contract/01_mistral_natural",
+      "fast": "mistral",
+      "careful": "openai",
+      "explicit_contract": true,
+      "inject_fault": false,
+      "capture_sha256": {
+        "plan.json": "6db9ed481962a71088dcdd1c51811dc2e2c01dcf693f2720b3e8e7570c0758bf",
+        "exchanges.jsonl": "21c02718c1d63febeededb59f3b6391bec6b1c08f6b82dca911faefc09a614c3",
+        "report.json": "6fcaa699679150499a301b4d81e463cb0492e201a055b260814b07aa49211f3e",
+        "events.jsonl": "2d5f4fc561c865e36c8f99ccf46faabf5973e0956f6ded0bb705aa962c079eff"
+      },
+      "expected_report": {
+        "complete": true,
+        "stop_reason": "verified_targets",
+        "results": {
+          "can_deliver": true,
+          "site_name": "Beppu"
+        },
+        "workers_used": [
+          "mistral-fast"
+        ],
+        "verification_failures": 0,
+        "invalidated_claim_events": 0
+      },
+      "expected_rejections": [],
+      "expected_invalidations": [],
+      "exchanges": [
+        {
+          "provider": "mistral",
+          "request_sha256": "981eeacf9e6049dbb0ad5e5547ea5b056c7922ba0ffc38aad9b130aa88dd8e3c",
+          "raw_content": "{\"ops\": [{\"claim_id\": \"workers\", \"evidence_ids\": [\"current\"], \"op\": \"add_claim\", \"reason\": \"Current fixture roster states 4 workers are staffed.\", \"value\": 4}]}",
+          "usage": {
+            "prompt_tokens": 711,
+            "completion_tokens": 51
+          }
+        },
+        {
+          "provider": "mistral",
+          "request_sha256": "20d4d1ff3e0a6864c5148962fef29ece9f6eed40c857751b209ca450d6dfe0ac",
+          "raw_content": "{\"ops\": [{\"claim_id\": \"per_worker\", \"evidence_ids\": [\"current\"], \"op\": \"add_claim\", \"reason\": \"The current fixture roster states each worker processes 75 items.\", \"value\": 75}]}",
+          "usage": {
+            "prompt_tokens": 717,
+            "completion_tokens": 55
+          }
+        },
+        {
+          "provider": "mistral",
+          "request_sha256": "06c5ee6504f71ba84e6275733fae45bbbd4f089d9060de3c4cd9f922fdbade4e",
+          "raw_content": "{\"ops\": [{\"op\": \"add_claim\", \"claim_id\": \"demand\", \"evidence_ids\": [\"current\"], \"value\": 240, \"reason\": \"The current source fact 'demand' is 240.\"}]}",
+          "usage": {
+            "prompt_tokens": 711,
+            "completion_tokens": 57
+          }
+        },
+        {
+          "provider": "mistral",
+          "request_sha256": "7882af3db97c354cd21b67cb3ad69ce92f2cc0d5b16a69bd0b15615a9de9fc43",
+          "raw_content": "{\"ops\": [{\"op\": \"add_claim\", \"claim_id\": \"site_name\", \"evidence_ids\": [\"site\"], \"value\": \"Beppu\", \"reason\": \"Source fact 'site_name' in 'site' facts states the site name is Beppu.\"}]}",
+          "usage": {
+            "prompt_tokens": 683,
+            "completion_tokens": 63
+          }
+        },
+        {
+          "provider": "mistral",
+          "request_sha256": "65cea119db104093cf85b72f3c4f4144d1bac72f55b66e7e708550ef68f0b59d",
+          "raw_content": "{\"ops\": [{\"claim_id\": \"capacity\", \"evidence_ids\": [], \"op\": \"add_claim\", \"reason\": \"Computed from current workers (4) multiplied by per_worker capacity (75).\", \"value\": 300}]}",
+          "usage": {
+            "prompt_tokens": 915,
+            "completion_tokens": 59
+          }
+        },
+        {
+          "provider": "mistral",
+          "request_sha256": "12c0103ed26c5230349b880b9a564c284fce3a02647ed16cc14361ffa63b80cf",
+          "raw_content": "{\"ops\": [{\"op\": \"add_claim\", \"claim_id\": \"can_deliver\", \"evidence_ids\": [], \"reason\": \"Capacity (300) is greater than or equal to demand (240).\", \"value\": true}]}",
+          "usage": {
+            "prompt_tokens": 1139,
+            "completion_tokens": 57
+          }
+        }
+      ]
+    },
+    {
+      "name": "live-explicit-contract/02_openai_natural",
+      "fast": "openai",
+      "careful": "gemini",
+      "explicit_contract": true,
+      "inject_fault": false,
+      "capture_sha256": {
+        "plan.json": "6db9ed481962a71088dcdd1c51811dc2e2c01dcf693f2720b3e8e7570c0758bf",
+        "exchanges.jsonl": "8fbbe38eeba4090bc8d407ab98085573c4238d5a345dd3aefb9d90bacd0e5680",
+        "report.json": "3cd4923446b3224c0e4bfae61d2928acdbdc0f02bc4cfc1e5cfca9d3ec5cda1a",
+        "events.jsonl": "801a4a727e70a8cf5d46d859a45b504d0f7c6a4a95ede86aadba82820561a856"
+      },
+      "expected_report": {
+        "complete": true,
+        "stop_reason": "verified_targets",
+        "results": {
+          "can_deliver": true,
+          "site_name": "Beppu"
+        },
+        "workers_used": [
+          "gemini-careful",
+          "openai-fast"
+        ],
+        "verification_failures": 0,
+        "invalidated_claim_events": 0
+      },
+      "expected_rejections": [
+        "unknown_or_unseen_evidence"
+      ],
+      "expected_invalidations": [],
+      "exchanges": [
+        {
+          "provider": "openai",
+          "request_sha256": "7fba15aafb2362c9e827bb0fc7856d86d1ca601b685905ad850bd146349aeb5b",
+          "raw_content": "{\"ops\":[{\"op\":\"add_claim\",\"claim_id\":\"workers\",\"value\":4,\"evidence_ids\":[\"current\"],\"reason\":\"The current source states there are 4 workers available, which matches the required claim for current staffing.\"}]}",
+          "usage": {
+            "prompt_tokens": 649,
+            "completion_tokens": 49
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "871ed96caddfa80b28a2a2d35deee9e61ae4bd9c1b520f5b60e525787061b591",
+          "raw_content": "{\"ops\":[{\"op\":\"add_claim\",\"claim_id\":\"per_worker\",\"value\":75,\"evidence_ids\":[\"current\"],\"reason\":\"The current source states each worker processes 75 items, so the per_worker capacity is 75.\"}]}",
+          "usage": {
+            "prompt_tokens": 655,
+            "completion_tokens": 50
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "ce2a19b8fbc4d5550e305e51f51bb652ad2722ed7eec6adb8a44d0d54108aabe",
+          "raw_content": "{\"ops\":[{\"op\":\"add_claim\",\"claim_id\":\"demand\",\"value\":240,\"evidence_ids\":[\"current\"],\"reason\":\"The current demand is explicitly stated as 240 items in the current source.\"}]}",
+          "usage": {
+            "prompt_tokens": 655,
+            "completion_tokens": 45
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "a693be381628b53eedca2e1bcd73dd2f1ebf365a67f3bff5639710ca5e1c8583",
+          "raw_content": "{\"ops\":[{\"op\":\"add_claim\",\"claim_id\":\"site_name\",\"value\":\"Beppu\",\"evidence_ids\":[\"site\"],\"reason\":\"The source fact states the site name is Beppu.\"}]}",
+          "usage": {
+            "prompt_tokens": 635,
+            "completion_tokens": 42
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "2ef5635ba3aa6c421144bf7265fc0ddf2a63ec5c12455da0a14650a306e85043",
+          "raw_content": "{\"ops\":[{\"op\":\"add_claim\",\"claim_id\":\"capacity\",\"value\":300,\"evidence_ids\":[\"per_worker\",\"workers\"],\"reason\":\"Capacity is calculated as workers (4) multiplied by per_worker (75), resulting in 300 total items processed.\"}]}",
+          "usage": {
+            "prompt_tokens": 831,
+            "completion_tokens": 55
+          }
+        },
+        {
+          "provider": "gemini",
+          "request_sha256": "edc887a78c3c245882ae940b1109afa32f97bf8d739b447a6811031d9c59ae4b",
+          "raw_content": "{\n  \"ops\": [\n    {\n      \"claim_id\": \"capacity\",\n      \"evidence_ids\": [],\n      \"op\": \"add_claim\",\n      \"reason\": \"Calculated capacity as workers * per_worker: 4 * 75 = 300.\",\n      \"value\": 300\n    }\n  ]\n}",
+          "usage": {
+            "prompt_tokens": 890,
+            "completion_tokens": 83
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "0ed3a35c774ea43b0c54f1963ea4b8ac0872722d7a9d894a905254dbc6fbe883",
+          "raw_content": "{\"ops\":[{\"op\":\"add_claim\",\"claim_id\":\"can_deliver\",\"value\":true,\"evidence_ids\":[],\"reason\":\"Capacity is 4 workers * 75 items = 300 items, which is greater than demand of 240 items, so delivery is possible.\"}]}",
+          "usage": {
+            "prompt_tokens": 1023,
+            "completion_tokens": 58
+          }
+        }
+      ]
+    },
+    {
+      "name": "live-explicit-contract/03_gemini_natural",
+      "fast": "gemini",
+      "careful": "mistral",
+      "explicit_contract": true,
+      "inject_fault": false,
+      "capture_sha256": {
+        "plan.json": "6db9ed481962a71088dcdd1c51811dc2e2c01dcf693f2720b3e8e7570c0758bf",
+        "exchanges.jsonl": "bdcebee1658ba2381493e27ef025d564d7bb616115709bb5c884a85228a62753",
+        "report.json": "1b3f9d7d11d53b76b9cd70931147f0c02516dbbf479717f824d18e6436521bc4",
+        "events.jsonl": "e1f5441c751cf4f183c297149c719eb7f32fdd50a1ac46f92039fff9e180e193"
+      },
+      "expected_report": {
+        "complete": true,
+        "stop_reason": "verified_targets",
+        "results": {
+          "can_deliver": true,
+          "site_name": "Beppu"
+        },
+        "workers_used": [
+          "gemini-fast"
+        ],
+        "verification_failures": 0,
+        "invalidated_claim_events": 0
+      },
+      "expected_rejections": [],
+      "expected_invalidations": [],
+      "exchanges": [
+        {
+          "provider": "gemini",
+          "request_sha256": "87fa26c364143bc58a16291f9e56009a62518666a50562ac07e4d6c483ffd9c4",
+          "raw_content": "{\n  \"ops\": [\n    {\n      \"claim_id\": \"workers\",\n      \"evidence_ids\": [\n        \"current\"\n      ],\n      \"op\": \"add_claim\",\n      \"reason\": \"The number of workers is directly stated in the 'current' source.\",\n      \"value\": 4\n    }\n  ]\n}",
+          "usage": {
+            "prompt_tokens": 697,
+            "completion_tokens": 81
+          }
+        },
+        {
+          "provider": "gemini",
+          "request_sha256": "a1ad2acba624b6cdaac0f2c172e67abd1728d8f2701190a02ec5468cae3250f9",
+          "raw_content": "{\n  \"ops\": [\n    {\n      \"claim_id\": \"per_worker\",\n      \"evidence_ids\": [\n        \"current\"\n      ],\n      \"op\": \"add_claim\",\n      \"reason\": \"The 'per_worker' value is directly stated in the 'current' source.\",\n      \"value\": 75\n    }\n  ]\n}",
+          "usage": {
+            "prompt_tokens": 709,
+            "completion_tokens": 87
+          }
+        },
+        {
+          "provider": "gemini",
+          "request_sha256": "1c1dc0b17832f5727844029513a0458e2b69bef14078baa5a61ec019a68f6ea8",
+          "raw_content": "{\n  \"ops\": [\n    {\n      \"claim_id\": \"demand\",\n      \"evidence_ids\": [\n        \"current\"\n      ],\n      \"op\": \"add_claim\",\n      \"reason\": \"The demand is directly stated in the 'current' source.\",\n      \"value\": 240\n    }\n  ]\n}",
+          "usage": {
+            "prompt_tokens": 697,
+            "completion_tokens": 81
+          }
+        },
+        {
+          "provider": "gemini",
+          "request_sha256": "33703fc3a878e93bab3ed88495f54cba1d9ca7e5fb53cd647c30753962aa1995",
+          "raw_content": "{\n  \"ops\": [\n    {\n      \"op\": \"add_claim\",\n      \"claim_id\": \"site_name\",\n      \"value\": \"Beppu\",\n      \"evidence_ids\": [\n        \"site\"\n      ],\n      \"reason\": \"The site name is directly stated in the 'site' source.\"\n    }\n  ]\n}",
+          "usage": {
+            "prompt_tokens": 684,
+            "completion_tokens": 84
+          }
+        },
+        {
+          "provider": "gemini",
+          "request_sha256": "49acda6febdab20ef9a6e5cef4fe19bb77d2db80696ee76285ae9db6e52cb11d",
+          "raw_content": "{\n  \"ops\": [\n    {\n      \"claim_id\": \"capacity\",\n      \"evidence_ids\": [],\n      \"op\": \"add_claim\",\n      \"reason\": \"Calculated capacity by multiplying the number of workers by the per-worker capacity.\",\n      \"value\": 300\n    }\n  ]\n}",
+          "usage": {
+            "prompt_tokens": 880,
+            "completion_tokens": 77
+          }
+        },
+        {
+          "provider": "gemini",
+          "request_sha256": "12922db00a87a0c97243de319dbd85c54aac7fa918cfd13230cb3d30228d96bf",
+          "raw_content": "{\"ops\":[{\"claim_id\":\"can_deliver\",\"evidence_ids\":[],\"op\":\"add_claim\",\"reason\":\"The capacity (300) is greater than or equal to the demand (240).\",\"value\":true}]}",
+          "usage": {
+            "prompt_tokens": 1069,
+            "completion_tokens": 49
+          }
+        }
+      ]
+    },
+    {
+      "name": "live-explicit-contract/04_injected_repair",
+      "fast": "mistral",
+      "careful": "openai",
+      "explicit_contract": true,
+      "inject_fault": true,
+      "capture_sha256": {
+        "plan.json": "6db9ed481962a71088dcdd1c51811dc2e2c01dcf693f2720b3e8e7570c0758bf",
+        "exchanges.jsonl": "1cff33a262e1e8413a2f4463edd375d86b05ebf316c4255d3720d7e4423405e9",
+        "report.json": "39c40041403b50d98cac9477d864afab6ec4319be3a23585ed1f47f79edf8422",
+        "events.jsonl": "be31eb671b8a8eb8b121d75c1be465cc393e6873d3b5251eecdbba28cdcca409"
+      },
+      "expected_report": {
+        "complete": true,
+        "stop_reason": "verified_targets",
+        "results": {
+          "can_deliver": true,
+          "site_name": "Beppu"
+        },
+        "workers_used": [
+          "mistral-fast",
+          "openai-careful"
+        ],
+        "verification_failures": 1,
+        "invalidated_claim_events": 3
+      },
+      "expected_rejections": [],
+      "expected_invalidations": [
+        [
+          "workers",
+          "capacity",
+          "can_deliver"
+        ]
+      ],
+      "exchanges": [
+        {
+          "provider": "mistral",
+          "request_sha256": "981eeacf9e6049dbb0ad5e5547ea5b056c7922ba0ffc38aad9b130aa88dd8e3c",
+          "raw_content": "{\"ops\": [{\"claim_id\": \"workers\", \"evidence_ids\": [\"current\"], \"op\": \"add_claim\", \"reason\": \"Current fixture roster states 4 workers are on duty.\", \"value\": 4}]}",
+          "usage": {
+            "prompt_tokens": 711,
+            "completion_tokens": 51
+          }
+        },
+        {
+          "provider": "mistral",
+          "request_sha256": "20d4d1ff3e0a6864c5148962fef29ece9f6eed40c857751b209ca450d6dfe0ac",
+          "raw_content": "{\"ops\": [{\"claim_id\": \"per_worker\", \"evidence_ids\": [\"current\"], \"op\": \"add_claim\", \"reason\": \"Current fixture roster states each worker processes 75 items.\", \"value\": 75}]}",
+          "usage": {
+            "prompt_tokens": 717,
+            "completion_tokens": 54
+          }
+        },
+        {
+          "provider": "mistral",
+          "request_sha256": "06c5ee6504f71ba84e6275733fae45bbbd4f089d9060de3c4cd9f922fdbade4e",
+          "raw_content": "{\"ops\": [{\"claim_id\": \"demand\", \"evidence_ids\": [\"current\"], \"op\": \"add_claim\", \"reason\": \"Current fixture roster states demand is 240 items.\", \"value\": 240}]}",
+          "usage": {
+            "prompt_tokens": 711,
+            "completion_tokens": 54
+          }
+        },
+        {
+          "provider": "mistral",
+          "request_sha256": "7882af3db97c354cd21b67cb3ad69ce92f2cc0d5b16a69bd0b15615a9de9fc43",
+          "raw_content": "{\"ops\": [{\"op\": \"add_claim\", \"claim_id\": \"site_name\", \"evidence_ids\": [\"site\"], \"value\": \"Beppu\", \"reason\": \"Source fact 'site_name' in 'site' facts provides the value 'Beppu'.\"}]}",
+          "usage": {
+            "prompt_tokens": 683,
+            "completion_tokens": 63
+          }
+        },
+        {
+          "provider": "mistral",
+          "request_sha256": "51ec290c5f1721df6c9564cfc03855bde60199f4bca996ecba46a2a131a3d6be",
+          "raw_content": "{\"ops\": [{\"op\": \"add_claim\", \"claim_id\": \"capacity\", \"evidence_ids\": [], \"reason\": \"Derived from workers=3 and per_worker=75 via multiplication (3 * 75 = 225).\", \"value\": 225}]}",
+          "usage": {
+            "prompt_tokens": 927,
+            "completion_tokens": 68
+          }
+        },
+        {
+          "provider": "mistral",
+          "request_sha256": "c237ac1c03a0168b9937f335e14276248ddd854b229e7efbdd95fc212bb55591",
+          "raw_content": "{\"ops\": [{\"op\": \"add_claim\", \"claim_id\": \"can_deliver\", \"evidence_ids\": [], \"value\": false, \"reason\": \"Capacity (225) is less than demand (240) per derived calculation from workers=3 and per_worker=75.\"}]}",
+          "usage": {
+            "prompt_tokens": 1158,
+            "completion_tokens": 69
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "31224f3517b8d93e6b35558e381a29657f0af66f6b363f6477edb336afff0a48",
+          "raw_content": "{\"ops\":[{\"op\":\"revise_claim\",\"claim_id\":\"workers\",\"value\":4,\"evidence_ids\":[\"current\"],\"reason\":\"The current source states there are 4 workers, each processing 75 items, with a demand of 240 items. The previous claim of 3 workers is incorrect.\"}]}",
+          "usage": {
+            "prompt_tokens": 663,
+            "completion_tokens": 64
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "0b4e76d71b2991d1aca8780a8feea9dfacfb89049757b72d424bb227e3aa62a4",
+          "raw_content": "{\"ops\":[{\"op\":\"revise_claim\",\"claim_id\":\"capacity\",\"evidence_ids\":[],\"value\":300,\"reason\":\"Capacity is workers (4) multiplied by per_worker (75), resulting in 300 items total capacity.\"}]}",
+          "usage": {
+            "prompt_tokens": 857,
+            "completion_tokens": 49
+          }
+        },
+        {
+          "provider": "openai",
+          "request_sha256": "8aa8d54da9429d27ea6d6b5c01784b653df3a1dd4e8cdf5f72de56024353bbe8",
+          "raw_content": "{\"ops\":[{\"op\":\"revise_claim\",\"claim_id\":\"can_deliver\",\"value\":true,\"evidence_ids\":[],\"reason\":\"Capacity is 4 workers * 75 items = 300 items, which meets the demand of 240 items.\"}]}",
+          "usage": {
+            "prompt_tokens": 1049,
+            "completion_tokens": 53
+          }
+        }
+      ]
+    }
+  ],
+  "limits_per_case": {
+    "call_timeout_s": 25,
+    "deadline_s": 180,
+    "max_attempts_per_claim": 2,
+    "max_calls": 9,
+    "max_cost_units": 24,
+    "max_reserved_output_tokens": 9216
+  }
+}

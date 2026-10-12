@@ -4,7 +4,7 @@
 
 A small, executable research nucleus for coordinating **separate reasoning agents over a shared, versioned claim ledger**, without merging their private memories, surrendering verification to the models, or rewriting a complete answer after every error.
 
-> **Status:** integrated alpha, not a benchmark win, autonomous AGI system, GPU controller, or production security boundary. The core uses deterministic structured tasks and an explicit verifier. Real model adapters require a separately operated loopback inference server.
+> **Status:** integrated alpha, not a benchmark win, autonomous AGI system, GPU controller, or production security boundary. The core uses deterministic structured tasks and an explicit verifier. The application CLI connects to a separately operated loopback inference server; an opt-in experiment harness also supports three cloud providers.
 
 ## First run
 
@@ -34,6 +34,14 @@ python3 -m conductor cosmic-run \
 ```
 
 No API key is required for the scripted demo or tests. Only literal loopback IP endpoints with explicit ports are accepted by the optional local model adapter. Generated artifacts contain input data; do not feed it sensitive documents without a retention plan.
+
+For a bounded OpenAI / Mistral / Gemini observation pilot, start with the offline transport simulation:
+
+```bash
+python3 -I -S -B experiments/provider_pilot.py --mode simulated --out runs/provider-simulation
+```
+
+The [provider pilot guide](docs/PROVIDER_PILOT.md) describes the explicit live command, required environment variables, recorded failures and repairs. Both chat adapters supply a per-dispatch operation and evidence contract; the model still generates the value and the ledger verifies it. The unit suite also replays 45 recorded provider responses without credentials or live calls.
 
 ## Actual runtime boundaries
 

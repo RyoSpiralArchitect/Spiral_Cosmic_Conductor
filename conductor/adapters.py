@@ -85,6 +85,41 @@ Another component verifies proposals. A proposal may be rejected.
 """
 
 
+DISPATCH_PROMPT = """\nThe host supplies target_contract for this ONE dispatch.
+Return exactly ONE operation. Copy target_contract.required_op, claim_id, and
+required_evidence_ids verbatim into op, claim_id, and evidence_ids.
+Every claim has a placeholder in view.claims, even when current_status is missing.
+That placeholder does NOT mean a claim exists: missing ALWAYS requires add_claim.
+For derived operations use the dependency values in view.claims as operands;
+do not replace those operands by re-reading raw source facts.
+Compute value and supply a brief checkable reason. The host will verify both
+the protocol and the value; this contract does not make the value true.
+"""
+
+
+def worker_messages(dispatch: Dispatch) -> list[dict[str, str]]:
+    """Describe one proposal's wire contract without computing its answer.
+
+    Missing claims have entries in the view too. Make their required operation
+    explicit rather than asking each model to infer existence from placeholders.
+    The authority ticket stays local and the ledger still validates every reply.
+    """
+    view = dispatch.view
+    if len(view["write_ids"]) != 1:
+        raise AdapterError("Chat worker expects one target")
+    cid = view["write_ids"][0]
+    slot = next(s for s in view["slots"] if s["id"] == cid)
+    status = view["claims"][cid]["status"]
+    operation = "add_claim" if status == "missing" else "revise_claim"
+    if operation not in view["allowed_ops"]:
+        raise AdapterError("Chat worker requires a proposal or repair grant")
+    contract = {"claim_id": cid, "current_status": status, "required_op": operation,
+                "required_evidence_ids": [slot["source"]] if slot["kind"] == "fact" else []}
+    user_data = {"view": view, "patch_schema": PATCH_SCHEMA, "target_contract": contract}
+    return [{"role": "system", "content": SYSTEM_PROMPT + DISPATCH_PROMPT},
+            {"role": "user", "content": canonical(user_data)}]
+
+
 class LocalChatWorker:
     """Local chat-completions wire protocol; remote addresses are intentionally refused.
 
@@ -120,12 +155,10 @@ class LocalChatWorker:
     def propose(self, dispatch: Dispatch, timeout_s: float) -> Reply:
         if timeout_s <= 0:
             raise AdapterError("No call time remains")
-        user_data = {"view": dispatch.view, "patch_schema": PATCH_SCHEMA}
         payload: dict[str, Any] = {
             "model": self.model, "stream": False, "temperature": 0.0,
             "max_tokens": self.max_output_tokens,
-            "messages": [{"role": "system", "content": SYSTEM_PROMPT},
-                         {"role": "user", "content": canonical(user_data)}]}
+            "messages": worker_messages(dispatch)}
         if self.json_mode:
             payload["response_format"] = {"type": "json_object"}
         body = canonical(payload).encode("utf-8")
