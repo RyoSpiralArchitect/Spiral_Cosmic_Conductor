@@ -130,6 +130,36 @@ its existing JSON-mode setting because local-server schema support is not assume
 The ledger still checks every response, and provider rejection/refusal/truncation
 is recorded without fallback or transport retry. The plan records the response format.
 
+A separate live qualification on `c3661ed` accepted that schema on all three pinned
+models and completed 4/4 cases in 27 calls, with zero HTTP/parse failures and zero
+patch rejections. The ordinary cases took 6 calls each. The injected case took 9:
+Mistral's initial candidates used the injected workers=3, yielding capacity=225 and
+can_deliver=false; verification invalidated those three linked claims, and OpenAI
+repaired them to 4, 300, and true. No extra attempts or budget were added.
+
+| Case | Target-evidence/feedback repair, JSON mode (`8f55ba8`) | Same repair with response schema (`c3661ed`) |
+|---|---|---|
+| Mistral → OpenAI | Complete, 6 calls | Complete, 6 calls |
+| OpenAI → Gemini | Complete, 7 calls | Complete, 6 calls |
+| Gemini → Mistral | Complete, 6 calls | Complete, 6 calls |
+| Mistral → OpenAI, host fault injection | Incomplete, 8 calls | Complete, 9 calls |
+
+All completed cases verified `workers=4`, `per_worker=75`, `demand=240`,
+`capacity=300`, `can_deliver=true`, and `site_name="Beppu"`. Models generated JSON
+patches and short reasons; the host's final text rendered only the verified target
+values (`can_deliver` and `site_name`). These runs exercised shared-state proposals,
+deterministic verification, dependency invalidation, and provider routing.
+
+Both new live captures were replayed offline against their matching frozen source:
+all 54 request bodies and all 8 final claim states matched, including the failed
+response and incomplete case. All 8 ledger audits and artifact manifests passed.
+Exchange token totals include the failed response: the first condition used 25,451
+input / 1,611 output tokens; the schema condition used 26,655 / 1,432. These are
+provider-reported counts, not prices; runtime reply totals omit the failed response.
+One pilot per condition does not estimate a completion rate or isolate a causal
+model-quality effect. The unchanged per-claim and per-run limits can still stop
+future runs that produce wrong values or unavailable responses.
+
 `provider_failures_2026-10-13.json` preserves four actual responses from the failed
 pilot. Regression tests check early rejection, unchanged bad output, scoped repair
 instructions, independent value verification, and successful artifact export even
