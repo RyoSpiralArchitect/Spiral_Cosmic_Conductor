@@ -10,7 +10,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from conductor.adapters import AdapterError
+from conductor.adapters import AdapterError, DISPATCH_PROMPT, SYSTEM_PROMPT
 from conductor.ledger import Ledger
 from conductor.runtime import Conductor, Limits
 from conductor.scenarios import capacity_task
@@ -93,6 +93,7 @@ class ProviderPilotTests(unittest.TestCase):
         self.assertEqual(payload["target_contract"], {
             "claim_id": "workers", "current_status": "missing", "required_op": "add_claim",
             "required_evidence_ids": ["current"],
+            "value_spec": {"kind": "fact", "source": "current", "field": "workers"},
         })
         self.assertTrue(self.ledger.apply(self.dispatch.ticket, self.rows[-1]["applied_patch"]).accepted)
         again = self.ledger.issue("mistral-fast", "repairer", {"workers"})
@@ -110,8 +111,8 @@ class ProviderPilotTests(unittest.TestCase):
             row = json.loads((Path(tmp) / "pilot/01_mistral_natural/exchanges.jsonl").read_text().splitlines()[0])
             self.assertNotIn("target_contract", json.loads(row["request"]["messages"][1]["content"]))
 
-    def test_recorded_live_exchanges_replay_with_identical_requests(self):
-        # No live calls: these are exact returned texts from both frozen pilots.
+    def test_recorded_live_exchanges_replay_with_historical_request_hashes(self):
+        # Preserve the frozen prompt condition; the current repair prompt adds metadata.
         fixture = json.loads((Path(__file__).parent / "fixtures/provider_pilot_2026-10-10.json").read_text())
         for case in fixture["cases"]:
             with self.subTest(case=case["name"]):
@@ -123,8 +124,15 @@ class ProviderPilotTests(unittest.TestCase):
                     self.assertTrue(remaining, "Unexpected extra provider call")
                     recorded = remaining.pop(0)
                     self.assertEqual(worker.provider, recorded["provider"])
-                    # Covers prompt, view, target contract, and provider-specific options.
-                    self.assertEqual(hashlib.sha256(body).hexdigest(), recorded["request_sha256"])
+                    historical = json.loads(body)
+                    data = json.loads(historical["messages"][1]["content"])
+                    data["view"].pop("repair_feedback", None)
+                    if "target_contract" in data:
+                        data["target_contract"].pop("value_spec", None)
+                        data["target_contract"].pop("repair_feedback", None)
+                    historical["messages"][0]["content"] = SYSTEM_PROMPT + (DISPATCH_PROMPT if case["explicit_contract"] else "")
+                    historical["messages"][1]["content"] = canonical(data)
+                    self.assertEqual(hashlib.sha256(canonical(historical).encode()).hexdigest(), recorded["request_sha256"])
                     return canonical({"choices": [{"finish_reason": "stop", "message": {
                         "content": recorded["raw_content"]}}], "usage": recorded["usage"]}).encode()
 
@@ -142,6 +150,40 @@ class ProviderPilotTests(unittest.TestCase):
                                       if event["kind"] == "verification_failed"], case["expected_invalidations"])
                     self.assertTrue(result["audit"]["state_replay_matches"])
                 self.assertEqual(remaining, [])
+
+    def test_abort_finalizes_spent_calls_and_partial_manifest(self):
+        def fail_after_call(task, fast, careful, out, **kwargs):
+            with Ledger(":memory:", task) as ledger:
+                fast.propose(ledger.issue(fast.name, "proposer", {"workers"}), 1)
+            raise ContractError("arbitrary-error-text-must-not-be-saved")
+
+        with tempfile.TemporaryDirectory() as tmp, redirect_stdout(io.StringIO()):
+            out = Path(tmp) / "pilot"
+            with patch("experiments.provider_pilot.run_cosmic", side_effect=fail_after_call):
+                with self.assertRaises(ContractError):
+                    run_pilot(out, "simulated")
+            summary = json.loads((out / "summary.json").read_text())
+            self.assertEqual(summary["status"], "aborted")
+            self.assertEqual(summary["generation_calls"], 1)
+            self.assertEqual(summary["completed_cases"], [])
+            self.assertEqual(summary["aborted_case"], {"case": "01_mistral_natural", "error_type": "ContractError"})
+            self.assertNotIn("arbitrary-error-text", json.dumps(summary))
+            manifest = json.loads((out / "pilot_manifest.json").read_text())
+            self.assertEqual(manifest["status"], "aborted")
+            self.assertIn("01_mistral_natural/exchanges.jsonl", manifest["sha256"])
+            for name, digest in manifest["sha256"].items():
+                self.assertEqual(hashlib.sha256((out / name).read_bytes()).hexdigest(), digest)
+
+    def test_interrupt_finalizes_without_swallowing_interrupt(self):
+        with tempfile.TemporaryDirectory() as tmp, redirect_stdout(io.StringIO()):
+            out = Path(tmp) / "pilot"
+            with patch("experiments.provider_pilot.run_cosmic", side_effect=KeyboardInterrupt):
+                with self.assertRaises(KeyboardInterrupt):
+                    run_pilot(out, "simulated")
+            summary = json.loads((out / "summary.json").read_text())
+            self.assertEqual(summary["status"], "aborted")
+            self.assertEqual(summary["generation_calls"], 0)
+            self.assertEqual(summary["aborted_case"]["error_type"], "KeyboardInterrupt")
 
     def test_zshrc_import_is_literal_and_does_not_execute(self):
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {}, clear=True):

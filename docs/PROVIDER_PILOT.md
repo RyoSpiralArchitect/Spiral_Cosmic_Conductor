@@ -72,19 +72,53 @@ outcomes, and hashes of the original captures. It excludes credentials, provider
 response IDs, local paths, and ledger authority tickets. The source captures were
 checked against their original integrity manifests before extracting this fixture.
 
-`test_recorded_live_exchanges_replay_with_identical_requests` checks the entire
-request body against each recorded SHA-256 before returning its captured response.
+`test_recorded_live_exchanges_replay_with_historical_request_hashes` reconstructs
+the historical message encoding (without the newer value specification and failure
+feedback) and checks it against each recorded request SHA-256 before returning its captured response.
 All 8 executions must reproduce their completion status, call count, results,
 patch rejections, and dependency invalidations through the real ledger and router.
-This also verifies that moving the corrected prompt into the shared builder
-preserves the request bytes observed in the 28-call corrected pilot. These tests
-are offline replays of earlier evidence, not fresh live generations. The injected
+The current prompt contains additional repair metadata, so these hashes describe
+the historical prompt condition, not byte identity with today's live requests.
+These tests are offline replays of earlier evidence, not fresh live generations. The injected
 case re-applies the explicit host fault while preserving the correct raw response.
 
 The other tests exercise loopback HTTP, simulated provider transports, bounded
 calls, malformed responses, credential preflight, and literal-only shell-variable
 import. A simulation uses a scripted fixture interpreter and cannot establish
 model quality. No test contacts a public provider.
+
+## Post-merge repair qualification (2026-10-13)
+
+A fresh pilot on merged commit `ad1b8f3` completed only 2/4 cases in 29 calls,
+although all 83 tests and CI passed. Mistral omitted a fact's evidence ID, and
+OpenAI changed the correct demand value while repairing it. In the injected case,
+Mistral also confused per-worker capacity with total capacity. These value errors
+were detected by the verifier, and the cases stopped at their existing limits.
+
+The injected case exposed a host inconsistency: the ledger accepted `current`
+as evidence for derived `capacity`, but capsule export rejected it. The exception
+left the pilot summary at `running` / 20 calls and prevented final manifest creation.
+Offline replay of all 29 responses reproduced the same exception on the merged source.
+
+The follow-up repair makes these boundaries explicit:
+
+- `Slot.evidence_ids` defines permitted references for the target slot. The ledger
+  rejects missing fact references or references outside that target before commit;
+  dependency source visibility does not authorize evidence for a derived slot.
+- `target_contract.value_spec` supplies a fact source/field pointer or a derived
+  operation/dependency list, without supplying the expected answer. Scoped host
+  feedback identifies the last rejection or failed verification and its root claim.
+  A later committed proposal supersedes old feedback.
+- A pilot exception or interruption finalizes the actual reserved call count,
+  `aborted` status, affected case, and partial integrity manifest before propagating
+  the error. Exception text is omitted. Output storage must remain writable; abrupt
+  process termination such as SIGKILL cannot execute this finalization.
+
+`provider_failures_2026-10-13.json` preserves four actual responses from the failed
+pilot. Regression tests check early rejection, unchanged bad output, scoped repair
+instructions, independent value verification, and successful artifact export even
+when a recorded bad repair leaves the task incomplete. Failed historical runs are
+not relabeled successful by these counterfactual tests.
 
 These are observations on one closed-world arithmetic fixture, not evidence of
 open-ended reasoning quality, a provider ranking, general safety, or benchmark gains.

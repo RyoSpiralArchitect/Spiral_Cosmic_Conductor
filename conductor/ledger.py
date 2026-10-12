@@ -147,6 +147,24 @@ class Ledger:
                     "slots": [s.to_dict() for s in self.task.slots if s.id in read_ids],
                     "claims": {cid: state[cid] for cid in sorted(read_ids)},
                     "sources": {sid: self.task.sources[sid] for sid in sorted(source_ids)}}
+            feedback = {}
+            history = self.events()
+            for cid in sorted(writes):
+                for event in reversed(history):
+                    kind, payload = event["kind"], event["payload"]
+                    # A later committed proposal or verification supersedes old feedback.
+                    if ((kind == "patch_committed" and any(op["claim_id"] == cid for op in payload["ops"]))
+                            or (kind == "verified" and payload["claim_id"] == cid)):
+                        break
+                    if kind == "patch_rejected" and cid in payload.get("write_ids", []):
+                        feedback[cid] = {"kind": kind, "reason": payload["reason"], "failed_claim_id": cid}
+                        break
+                    if kind == "verification_failed" and cid in payload["invalidated"]:
+                        feedback[cid] = {"kind": kind, "reason": payload["reason"],
+                                         "failed_claim_id": payload["claim_id"]}
+                        break
+            if feedback:
+                view["repair_feedback"] = feedback
             self._event("dispatched", worker, {"role": role, "read_ids": sorted(read_ids),
                                              "write_ids": sorted(writes), "view_bytes": len(canonical(view).encode())})
         return Dispatch(token, json.loads(canonical(view)), worker, role)
@@ -183,7 +201,9 @@ class Ledger:
             actor = grant["worker"] if grant else "unknown"
 
             def reject(reason: str) -> Commit:
-                self._event("patch_rejected", actor, {"reason": reason})
+                # Only host-authorized targets are logged; never echo arbitrary patch data.
+                scope = json.loads(grant["writes"]) if grant else []
+                self._event("patch_rejected", actor, {"reason": reason, "write_ids": scope})
                 return Commit(False, reason)
 
             if not grant:
@@ -211,6 +231,8 @@ class Ledger:
                     return reject("unknown_or_unseen_evidence")
                 claim, slot = state[cid], self.task.by_id[cid]
                 if action == "request_backtrack":
+                    if not set(op["evidence_ids"]) <= set(slot.evidence_ids):
+                        return reject("evidence_outside_target_scope")
                     if claim["status"] in {"missing", "invalidated"}:
                         return reject("nothing_to_challenge")
                     # A critic can request re-verification, never confer truth or edit values.
@@ -222,6 +244,12 @@ class Ledger:
                     return reject("already_exists_use_revise")
                 if action in {"revise_claim", "attach_evidence"} and claim["status"] == "missing":
                     return reject("claim_does_not_exist")
+                refs = (sorted(set(claim["evidence_ids"] + op["evidence_ids"]))
+                        if action == "attach_evidence" else op["evidence_ids"])
+                if not set(refs) <= set(slot.evidence_ids):
+                    return reject("evidence_outside_target_scope")
+                if slot.kind == "fact" and slot.source not in refs:
+                    return reject("missing_source_reference")
                 if any(state[d]["status"] not in {"candidate", "verified"} for d in slot.deps):
                     return reject("dependency_unavailable")
                 invalidated.update(self._invalidate(state, cid, "Parent revised", include_root=False))
@@ -229,7 +257,7 @@ class Ledger:
                 claim["value_rev"] += 1
                 if action != "attach_evidence":
                     claim["value"] = op["value"]
-                claim["evidence_ids"] = sorted(set(claim["evidence_ids"] + op["evidence_ids"])) if action == "attach_evidence" else op["evidence_ids"]
+                claim["evidence_ids"] = refs
                 claim.update(status="candidate", proposer=actor, verification=None, note=op["reason"],
                              basis={d: state[d]["value_rev"] for d in slot.deps})
             changes = [state[s.id] for s in self.task.slots if state[s.id] != original[s.id]]

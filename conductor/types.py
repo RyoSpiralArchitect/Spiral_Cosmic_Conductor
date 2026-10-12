@@ -83,6 +83,11 @@ class Slot:
     source: str | None = None
     field: str | None = None
 
+    @property
+    def evidence_ids(self) -> tuple[str, ...]:
+        """Source references permitted for this slot, not its dependency closure."""
+        return (self.source,) if self.kind == "fact" else ()
+
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> Slot:
         exact_keys(raw, {"id", "kind"}, {"deps", "source", "field"})

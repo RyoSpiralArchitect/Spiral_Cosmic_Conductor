@@ -85,7 +85,7 @@ def run_cosmic(task: Task, fast: Worker, careful: Worker, out: Path,
                         "verified", "closed-world-checker") for c in payload["changes"]]
         for idx, (cid, value, refs, state, actor) in enumerate(entries):
             slot = task.by_id[cid]
-            evidence.validate_refs(refs, {slot.source} if slot.source else set())
+            evidence.validate_refs(refs, set(slot.evidence_ids))
             capsule = MeaningCapsule(
                 uid=f"capsule_{event['seq']}_{idx}", sender="controller",
                 receiver="observatory", claim_id=cid, value=value, state=state,

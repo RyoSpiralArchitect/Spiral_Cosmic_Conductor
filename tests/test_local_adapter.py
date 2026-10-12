@@ -94,7 +94,8 @@ class LocalAdapterTests(unittest.TestCase):
         self.assertNotIn(self.dispatch.ticket, json.dumps(req))
         target = json.loads(req["messages"][1]["content"])["target_contract"]
         self.assertEqual(target, {"claim_id": "workers", "current_status": "missing",
-                                  "required_op": "add_claim", "required_evidence_ids": ["current"]})
+                                  "required_op": "add_claim", "required_evidence_ids": ["current"],
+                                  "value_spec": {"kind": "fact", "source": "current", "field": "workers"}})
 
     def test_wrong_operation_is_not_silently_rewritten(self):
         Handler.mode = "revise_missing"
