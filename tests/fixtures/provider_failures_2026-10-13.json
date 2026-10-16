@@ -1,0 +1,38 @@
+{
+  "source_commit": "ad1b8f3de6c09f829780e5fa87fabb5c84323ff9",
+  "scope": "Exact responses from the failed 29-call live pilot; not new generations",
+  "responses": {
+    "missing_fact_evidence": {
+      "case": "01_mistral_natural",
+      "call_index": 3,
+      "provider": "mistral",
+      "claim_id": "demand",
+      "raw_content": "{\"ops\": [{\"op\": \"add_claim\", \"claim_id\": \"demand\", \"evidence_ids\": [], \"value\": 240, \"reason\": \"Source fact 'demand' states requested items are 240.\"}]}",
+      "capture_sha256": "7320b6b5c75e001eec3148c32dfd5b4d342f90c23bf1e1743647aa7fbe16b594"
+    },
+    "wrong_repair_value": {
+      "case": "01_mistral_natural",
+      "call_index": 7,
+      "provider": "openai",
+      "claim_id": "demand",
+      "raw_content": "{\"ops\":[{\"op\":\"revise_claim\",\"claim_id\":\"demand\",\"value\":300,\"evidence_ids\":[\"current\"],\"reason\":\"Demand is calculated as workers (4) multiplied by per_worker capacity (75), resulting in 300 items, which is the current capacity, not 240.\"}]}",
+      "capture_sha256": "7320b6b5c75e001eec3148c32dfd5b4d342f90c23bf1e1743647aa7fbe16b594"
+    },
+    "wrong_fact_value": {
+      "case": "04_injected_repair",
+      "call_index": 22,
+      "provider": "mistral",
+      "claim_id": "per_worker",
+      "raw_content": "{\"ops\": [{\"claim_id\": \"per_worker\", \"evidence_ids\": [\"current\"], \"op\": \"add_claim\", \"reason\": \"Current fixture roster states 4 workers each processing 75 items.\", \"value\": 300}]}",
+      "capture_sha256": "1ed6d90ba13a2b646905e2f8156f3f122e743e6151a7964e63b714b57aabaa3b"
+    },
+    "derived_source_evidence": {
+      "case": "04_injected_repair",
+      "call_index": 28,
+      "provider": "openai",
+      "claim_id": "capacity",
+      "raw_content": "{\"ops\":[{\"op\":\"revise_claim\",\"claim_id\":\"capacity\",\"evidence_ids\":[\"current\"],\"value\":300,\"reason\":\"Capacity is workers (4) multiplied by per_worker (75), resulting in 300 items capacity, which meets the demand of 240.\"}]}",
+      "capture_sha256": "1ed6d90ba13a2b646905e2f8156f3f122e743e6151a7964e63b714b57aabaa3b"
+    }
+  }
+}

@@ -13,7 +13,7 @@ import urllib.parse
 import urllib.request
 from typing import Any, Protocol
 
-from .types import (ContractError, Dispatch, PATCH_SCHEMA, Reply, Usage, canonical,
+from .types import (ContractError, Dispatch, PATCH_SCHEMA, Reply, Slot, Usage, canonical,
                     compute, parse_patch, strict_json)
 
 
@@ -97,6 +97,63 @@ the protocol and the value; this contract does not make the value true.
 """
 
 
+VALUE_PROMPT = """\nThe target_contract.value_spec identifies the ONE value to propose.
+For a fact, read ONLY view.sources[value_spec.source].facts[value_spec.field].
+Copy that field's value; never compute a fact or substitute another field.
+For a derived slot, apply value_spec.kind to the listed dependency claim values.
+repair_feedback, when present, is the host's last failure for this target or its
+dependency. Correct the reported defect and re-read the designated value_spec.
+A missing reference is not evidence that the proposed number was wrong.
+The host still checks all values; do not invent an answer from the failure label.
+"""
+
+
+def _target_contract(dispatch: Dispatch) -> dict[str, Any]:
+    view = dispatch.view
+    if len(view["write_ids"]) != 1:
+        raise AdapterError("Chat worker expects one target")
+    cid = view["write_ids"][0]
+    slot = Slot.from_dict(next(s for s in view["slots"] if s["id"] == cid))
+    status = view["claims"][cid]["status"]
+    operation = "add_claim" if status == "missing" else "revise_claim"
+    if operation not in view["allowed_ops"]:
+        raise AdapterError("Chat worker requires a proposal or repair grant")
+    contract = {"claim_id": cid, "current_status": status, "required_op": operation,
+                "required_evidence_ids": list(slot.evidence_ids),
+                "value_spec": ({"kind": "fact", "source": slot.source, "field": slot.field}
+                               if slot.kind == "fact" else {"kind": slot.kind, "deps": list(slot.deps)})}
+    if cid in view.get("repair_feedback", {}):
+        contract["repair_feedback"] = view["repair_feedback"][cid]
+    return contract
+
+
+def worker_patch_schema(dispatch: Dispatch) -> dict[str, Any]:
+    """Constrain dispatch metadata while leaving the proposed value unconstrained.
+
+    Schema support is a transport option, never authority to commit or verify.
+    Fact evidence has exactly one designated ID; derived evidence is empty.
+    """
+    contract = _target_contract(dispatch)
+    refs = contract["required_evidence_ids"]
+    evidence_item: dict[str, Any] = {"type": "string"}
+    if refs:
+        evidence_item["enum"] = refs
+    return {
+        "type": "object", "additionalProperties": False, "required": ["ops"],
+        "properties": {"ops": {"type": "array", "minItems": 1, "maxItems": 1, "items": {
+            "type": "object", "additionalProperties": False,
+            "required": ["op", "claim_id", "value", "evidence_ids", "reason"],
+            "properties": {
+                "op": {"type": "string", "enum": [contract["required_op"]]},
+                "claim_id": {"type": "string", "enum": [contract["claim_id"]]},
+                "value": {"anyOf": [{"type": "integer"}, {"type": "boolean"}, {"type": "string"}]},
+                "evidence_ids": {"type": "array", "items": evidence_item,
+                                 "minItems": len(refs), "maxItems": len(refs)},
+                "reason": {"type": "string"},
+            }}}},
+    }
+
+
 def worker_messages(dispatch: Dispatch) -> list[dict[str, str]]:
     """Describe one proposal's wire contract without computing its answer.
 
@@ -105,18 +162,9 @@ def worker_messages(dispatch: Dispatch) -> list[dict[str, str]]:
     The authority ticket stays local and the ledger still validates every reply.
     """
     view = dispatch.view
-    if len(view["write_ids"]) != 1:
-        raise AdapterError("Chat worker expects one target")
-    cid = view["write_ids"][0]
-    slot = next(s for s in view["slots"] if s["id"] == cid)
-    status = view["claims"][cid]["status"]
-    operation = "add_claim" if status == "missing" else "revise_claim"
-    if operation not in view["allowed_ops"]:
-        raise AdapterError("Chat worker requires a proposal or repair grant")
-    contract = {"claim_id": cid, "current_status": status, "required_op": operation,
-                "required_evidence_ids": [slot["source"]] if slot["kind"] == "fact" else []}
+    contract = _target_contract(dispatch)
     user_data = {"view": view, "patch_schema": PATCH_SCHEMA, "target_contract": contract}
-    return [{"role": "system", "content": SYSTEM_PROMPT + DISPATCH_PROMPT},
+    return [{"role": "system", "content": SYSTEM_PROMPT + DISPATCH_PROMPT + VALUE_PROMPT},
             {"role": "user", "content": canonical(user_data)}]
 
 

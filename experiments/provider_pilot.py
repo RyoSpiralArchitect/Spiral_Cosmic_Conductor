@@ -23,7 +23,8 @@ from typing import Any, Callable
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from conductor.adapters import AdapterError, ScriptedWorker, SYSTEM_PROMPT, _NoRedirect, worker_messages
+from conductor.adapters import (AdapterError, ScriptedWorker, SYSTEM_PROMPT, _NoRedirect,
+                                worker_messages, worker_patch_schema)
 from conductor.cosmic import run_cosmic, verify_bundle, write_json
 from conductor.runtime import Limits
 from conductor.scenarios import capacity_task
@@ -126,14 +127,18 @@ class ProviderWorker:
             raise AdapterError("No request time remains")
         if self.explicit_contract:
             messages = worker_messages(dispatch)
+            response_format = {"type": "json_schema", "json_schema": {
+                "name": "scoped_patch", "strict": True, "schema": worker_patch_schema(dispatch)}}
         else:
             # Explicit historical comparison only; normal runs use the repaired path.
+            legacy_view = {key: value for key, value in dispatch.view.items() if key != "repair_feedback"}
             messages = [{"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": canonical({"view": dispatch.view, "patch_schema": PATCH_SCHEMA})}]
+                        {"role": "user", "content": canonical({"view": legacy_view, "patch_schema": PATCH_SCHEMA})}]
+            response_format = {"type": "json_object"}
         payload: dict[str, Any] = {
             "model": self.spec.model, "stream": False, "temperature": 0,
             "messages": messages,
-            "response_format": {"type": "json_object"},
+            "response_format": response_format,
         }
         payload["max_completion_tokens" if self.provider == "openai" else "max_tokens"] = self.max_output_tokens
         if self.provider == "openai":
@@ -209,6 +214,7 @@ def run_pilot(out: Path, mode: str, *, explicit_contract: bool = True) -> dict[s
     source_hashes = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
                      for p in [*sorted((ROOT / "conductor").glob("*.py")), Path(__file__).resolve()]}
     plan = {"mode": mode, "explicit_dispatch_contract": explicit_contract,
+            "response_format": "json_schema" if explicit_contract else "json_object",
             "providers": {k: asdict(v) for k, v in PROVIDERS.items()},
             "limits_per_case": asdict(limits), "maximum_total_generation_calls": 36,
             "transport_retries": 0, "speculation": True, "source_sha256": source_hashes,
@@ -217,46 +223,61 @@ def run_pilot(out: Path, mode: str, *, explicit_contract: bool = True) -> dict[s
     write_json(out / "plan.json", plan)
     budget = CallBudget()
     summaries = []
-    for case_name, fast_provider, careful_provider, inject in CASES:
-        case_dir = out / case_name
-        case_dir.mkdir()
-        rows: list[dict[str, Any]] = []
+    status, active_case, error_type = "aborted", None, None
+    write_json(out / "summary.json", {"mode": mode, "completed_cases": summaries,
+                                      "generation_calls": 0, "status": "running"})
+    try:
+        for case_name, fast_provider, careful_provider, inject in CASES:
+            active_case = case_name
+            case_dir = out / case_name
+            case_dir.mkdir()
+            rows: list[dict[str, Any]] = []
 
-        def record(row: dict[str, Any]) -> None:
-            sanitized = safe_text(canonical(row), secrets)
-            with (case_dir / "exchanges.jsonl").open("a", encoding="utf-8") as log:
-                log.write(sanitized + "\n")
-            rows.append(strict_json(sanitized))
-            print(f"  {case_name}: {row['worker']} {row['claim_id']} {row['status']}", flush=True)
+            def record(row: dict[str, Any]) -> None:
+                sanitized = safe_text(canonical(row), secrets)
+                with (case_dir / "exchanges.jsonl").open("a", encoding="utf-8") as log:
+                    log.write(sanitized + "\n")
+                rows.append(strict_json(sanitized))
+                print(f"  {case_name}: {row['worker']} {row['claim_id']} {row['status']}", flush=True)
 
-        fast = ProviderWorker(fast_provider, "fast", mode, budget, record, inject_fault=inject,
-                              explicit_contract=explicit_contract)
-        careful = ProviderWorker(careful_provider, "careful", mode, budget, record,
-                                 explicit_contract=explicit_contract)
-        result = run_cosmic(capacity_task(), fast, careful, case_dir / "runtime", limits=limits)
-        report = strict_json(result.report_path.read_text())
-        verification = verify_bundle(case_dir / "runtime")
-        events = [strict_json(line) for line in (case_dir / "runtime" / "events.jsonl").read_text().splitlines()]
-        summary = {"case": case_name, "mode": mode, "complete": result.complete,
-                   "stop_reason": result.stop_reason, "host_fault_injected": fast.injected,
-                   "workers_used": report["workers_used"], "usage": report["usage"],
-                   "results": report["results"], "verification_failures": report["verification_failures"],
-                   "invalidated_claim_events": report["invalidated_claim_events"],
-                   "worker_failures": sum(e["kind"] == "worker_failed" for e in events),
-                   "patch_rejections": sum(e["kind"] == "patch_rejected" for e in events),
-                   "failed_http_or_responses": sum(r["status"] != "parsed" for r in rows),
-                   "artifact_verification": verification, "audit": report["audit"]}
-        summaries.append(summary)
-        write_json(out / "summary.json", {"mode": mode, "completed_cases": summaries,
-                                          "generation_calls": budget.used, "status": "running"})
-        print(f"CASE COMPLETE: {case_name} complete={result.complete} calls={report['usage']['calls']}", flush=True)
-    summary = {"mode": mode, "completed_cases": summaries, "generation_calls": budget.used,
-               "status": "completed" if all(s["complete"] for s in summaries) else "completed_with_incomplete_cases"}
-    write_json(out / "summary.json", summary)
-    # Includes raw returned text and actual applied patches as well as core receipts.
-    manifest = {str(p.relative_to(out)): hashlib.sha256(p.read_bytes()).hexdigest()
-                for p in sorted(out.rglob("*")) if p.is_file()}
-    write_json(out / "pilot_manifest.json", {"sha256": manifest, "claim": "local_integrity_only"})
+            fast = ProviderWorker(fast_provider, "fast", mode, budget, record, inject_fault=inject,
+                                  explicit_contract=explicit_contract)
+            careful = ProviderWorker(careful_provider, "careful", mode, budget, record,
+                                     explicit_contract=explicit_contract)
+            result = run_cosmic(capacity_task(), fast, careful, case_dir / "runtime", limits=limits)
+            report = strict_json(result.report_path.read_text())
+            verification = verify_bundle(case_dir / "runtime")
+            events = [strict_json(line) for line in (case_dir / "runtime" / "events.jsonl").read_text().splitlines()]
+            summary = {"case": case_name, "mode": mode, "complete": result.complete,
+                       "stop_reason": result.stop_reason, "host_fault_injected": fast.injected,
+                       "workers_used": report["workers_used"], "usage": report["usage"],
+                       "results": report["results"], "verification_failures": report["verification_failures"],
+                       "invalidated_claim_events": report["invalidated_claim_events"],
+                       "worker_failures": sum(e["kind"] == "worker_failed" for e in events),
+                       "patch_rejections": sum(e["kind"] == "patch_rejected" for e in events),
+                       "failed_http_or_responses": sum(r["status"] != "parsed" for r in rows),
+                       "artifact_verification": verification, "audit": report["audit"]}
+            summaries.append(summary)
+            write_json(out / "summary.json", {"mode": mode, "completed_cases": summaries,
+                                              "generation_calls": budget.used, "status": "running"})
+            print(f"CASE COMPLETE: {case_name} complete={result.complete} calls={report['usage']['calls']}", flush=True)
+        active_case = None
+        status = "completed" if all(s["complete"] for s in summaries) else "completed_with_incomplete_cases"
+    except BaseException as exc:
+        # Preserve partial evidence on export errors or interruption; never log exception text.
+        error_type = type(exc).__name__
+        raise
+    finally:
+        summary = {"mode": mode, "completed_cases": summaries, "generation_calls": budget.used,
+                   "status": status}
+        if active_case is not None:
+            summary["aborted_case"] = {"case": active_case, "error_type": error_type}
+        write_json(out / "summary.json", summary)
+        manifest = {str(p.relative_to(out)): hashlib.sha256(p.read_bytes()).hexdigest()
+                    for p in sorted(out.rglob("*")) if p.is_file() and p != out / "pilot_manifest.json"}
+        write_json(out / "pilot_manifest.json", {"sha256": manifest, "claim": "local_integrity_only",
+                                                "status": status})
+
     return summary
 
 

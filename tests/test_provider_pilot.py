@@ -10,7 +10,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from conductor.adapters import AdapterError
+from conductor.adapters import AdapterError, DISPATCH_PROMPT, SYSTEM_PROMPT
 from conductor.ledger import Ledger
 from conductor.runtime import Conductor, Limits
 from conductor.scenarios import capacity_task
@@ -93,6 +93,7 @@ class ProviderPilotTests(unittest.TestCase):
         self.assertEqual(payload["target_contract"], {
             "claim_id": "workers", "current_status": "missing", "required_op": "add_claim",
             "required_evidence_ids": ["current"],
+            "value_spec": {"kind": "fact", "source": "current", "field": "workers"},
         })
         self.assertTrue(self.ledger.apply(self.dispatch.ticket, self.rows[-1]["applied_patch"]).accepted)
         again = self.ledger.issue("mistral-fast", "repairer", {"workers"})
@@ -109,9 +110,73 @@ class ProviderPilotTests(unittest.TestCase):
             self.assertEqual(result["completed_cases"][-1]["invalidated_claim_events"], 3)
             row = json.loads((Path(tmp) / "pilot/01_mistral_natural/exchanges.jsonl").read_text().splitlines()[0])
             self.assertNotIn("target_contract", json.loads(row["request"]["messages"][1]["content"]))
+            self.assertEqual(row["request"]["response_format"], {"type": "json_object"})
 
-    def test_recorded_live_exchanges_replay_with_identical_requests(self):
-        # No live calls: these are exact returned texts from both frozen pilots.
+    def test_legacy_requests_omit_failure_feedback_without_mutating_dispatch(self):
+        for failure in ("patch_rejected", "verification_failed"):
+            with self.subTest(failure=failure), Ledger(":memory:", capacity_task()) as ledger:
+                initial = ledger.issue("mistral-fast", "proposer", {"workers"})
+                proposed = {"ops": [{"op": "add_claim", "claim_id": "workers",
+                    "value": 3 if failure == "verification_failed" else 4,
+                    "evidence_ids": [] if failure == "patch_rejected" else ["current"],
+                    "reason": "Trigger a host failure for legacy-request regression."}]}
+                result = ledger.apply(initial.ticket, proposed)
+                self.assertEqual(result.accepted, failure == "verification_failed")
+                if result.accepted:
+                    self.assertEqual(ledger.verify("workers").reason, "value_mismatch")
+                dispatch = ledger.issue("mistral-careful", "repairer", {"workers"})
+                self.assertEqual(dispatch.view["repair_feedback"]["workers"]["kind"], failure)
+                original_view = canonical(dispatch.view)
+                rows = []
+                legacy = ProviderWorker("mistral", "careful", "simulated", CallBudget(), rows.append,
+                                        explicit_contract=False)
+                legacy.propose(dispatch, 1)
+                request = rows[-1]["request"]
+                data = json.loads(request["messages"][1]["content"])
+                self.assertNotIn("repair_feedback", data["view"])
+                self.assertNotIn("target_contract", data)
+                self.assertEqual(request["messages"][0]["content"], SYSTEM_PROMPT)
+                self.assertEqual(request["response_format"], {"type": "json_object"})
+                self.assertEqual(canonical(dispatch.view), original_view)
+                modern = ProviderWorker("mistral", "careful", "simulated", CallBudget(), rows.append)
+                modern.propose(dispatch, 1)
+                modern_data = json.loads(rows[-1]["request"]["messages"][1]["content"])
+                self.assertEqual(modern_data["target_contract"]["repair_feedback"],
+                                 dispatch.view["repair_feedback"]["workers"])
+
+    def test_schema_locks_dispatch_metadata_but_not_the_answer(self):
+        # Inspect real transport payloads for all three providers and both slot kinds.
+        for provider in PROVIDERS:
+            worker = ProviderWorker(provider, "fast", "simulated", CallBudget(), self.rows.append)
+            for cid, refs in (("workers", ["current"]), ("capacity", [])):
+                for status, operation in (("missing", "add_claim"), ("invalidated", "revise_claim")):
+                    with self.subTest(provider=provider, target=cid, status=status):
+                        dispatch = self.ledger.issue(worker.name, "repairer", {cid})
+                        dispatch.view["claims"][cid]["status"] = status
+                        response = canonical({"choices": [{"finish_reason": "stop", "message": {
+                            "content": canonical({"ops": [{"op": operation, "claim_id": cid,
+                                "value": 999, "evidence_ids": refs, "reason": "Candidate only."}]})}}]}).encode()
+                        with patch.object(worker, "_transport", return_value=response):
+                            reply = worker.propose(dispatch, 1)
+                        fmt = self.rows[-1]["request"]["response_format"]
+                        self.assertEqual(fmt["type"], "json_schema")
+                        self.assertTrue(fmt["json_schema"]["strict"])
+                        schema = fmt["json_schema"]["schema"]
+                        self.assertFalse(schema["additionalProperties"])
+                        ops = schema["properties"]["ops"]
+                        self.assertEqual((ops["minItems"], ops["maxItems"]), (1, 1))
+                        fields = ops["items"]["properties"]
+                        self.assertEqual(fields["op"]["enum"], [operation])
+                        self.assertEqual(fields["claim_id"]["enum"], [cid])
+                        evidence = fields["evidence_ids"]
+                        self.assertEqual((evidence["minItems"], evidence["maxItems"]), (len(refs), len(refs)))
+                        self.assertEqual(evidence["items"].get("enum", []), refs)
+                        self.assertEqual(fields["value"], {"anyOf": [
+                            {"type": "integer"}, {"type": "boolean"}, {"type": "string"}]})
+                        self.assertEqual(reply.patch["ops"][0]["value"], 999)
+
+    def test_recorded_live_exchanges_replay_with_historical_request_hashes(self):
+        # Preserve the frozen prompt condition; the current repair prompt adds metadata.
         fixture = json.loads((Path(__file__).parent / "fixtures/provider_pilot_2026-10-10.json").read_text())
         for case in fixture["cases"]:
             with self.subTest(case=case["name"]):
@@ -123,8 +188,19 @@ class ProviderPilotTests(unittest.TestCase):
                     self.assertTrue(remaining, "Unexpected extra provider call")
                     recorded = remaining.pop(0)
                     self.assertEqual(worker.provider, recorded["provider"])
-                    # Covers prompt, view, target contract, and provider-specific options.
-                    self.assertEqual(hashlib.sha256(body).hexdigest(), recorded["request_sha256"])
+                    if not case["explicit_contract"]:
+                        # Legacy transport must match directly, without hiding added metadata.
+                        self.assertEqual(hashlib.sha256(body).hexdigest(), recorded["request_sha256"])
+                    historical = json.loads(body)
+                    historical["response_format"] = {"type": "json_object"}
+                    data = json.loads(historical["messages"][1]["content"])
+                    data["view"].pop("repair_feedback", None)
+                    if "target_contract" in data:
+                        data["target_contract"].pop("value_spec", None)
+                        data["target_contract"].pop("repair_feedback", None)
+                    historical["messages"][0]["content"] = SYSTEM_PROMPT + (DISPATCH_PROMPT if case["explicit_contract"] else "")
+                    historical["messages"][1]["content"] = canonical(data)
+                    self.assertEqual(hashlib.sha256(canonical(historical).encode()).hexdigest(), recorded["request_sha256"])
                     return canonical({"choices": [{"finish_reason": "stop", "message": {
                         "content": recorded["raw_content"]}}], "usage": recorded["usage"]}).encode()
 
@@ -142,6 +218,40 @@ class ProviderPilotTests(unittest.TestCase):
                                       if event["kind"] == "verification_failed"], case["expected_invalidations"])
                     self.assertTrue(result["audit"]["state_replay_matches"])
                 self.assertEqual(remaining, [])
+
+    def test_abort_finalizes_spent_calls_and_partial_manifest(self):
+        def fail_after_call(task, fast, careful, out, **kwargs):
+            with Ledger(":memory:", task) as ledger:
+                fast.propose(ledger.issue(fast.name, "proposer", {"workers"}), 1)
+            raise ContractError("arbitrary-error-text-must-not-be-saved")
+
+        with tempfile.TemporaryDirectory() as tmp, redirect_stdout(io.StringIO()):
+            out = Path(tmp) / "pilot"
+            with patch("experiments.provider_pilot.run_cosmic", side_effect=fail_after_call):
+                with self.assertRaises(ContractError):
+                    run_pilot(out, "simulated")
+            summary = json.loads((out / "summary.json").read_text())
+            self.assertEqual(summary["status"], "aborted")
+            self.assertEqual(summary["generation_calls"], 1)
+            self.assertEqual(summary["completed_cases"], [])
+            self.assertEqual(summary["aborted_case"], {"case": "01_mistral_natural", "error_type": "ContractError"})
+            self.assertNotIn("arbitrary-error-text", json.dumps(summary))
+            manifest = json.loads((out / "pilot_manifest.json").read_text())
+            self.assertEqual(manifest["status"], "aborted")
+            self.assertIn("01_mistral_natural/exchanges.jsonl", manifest["sha256"])
+            for name, digest in manifest["sha256"].items():
+                self.assertEqual(hashlib.sha256((out / name).read_bytes()).hexdigest(), digest)
+
+    def test_interrupt_finalizes_without_swallowing_interrupt(self):
+        with tempfile.TemporaryDirectory() as tmp, redirect_stdout(io.StringIO()):
+            out = Path(tmp) / "pilot"
+            with patch("experiments.provider_pilot.run_cosmic", side_effect=KeyboardInterrupt):
+                with self.assertRaises(KeyboardInterrupt):
+                    run_pilot(out, "simulated")
+            summary = json.loads((out / "summary.json").read_text())
+            self.assertEqual(summary["status"], "aborted")
+            self.assertEqual(summary["generation_calls"], 0)
+            self.assertEqual(summary["aborted_case"]["error_type"], "KeyboardInterrupt")
 
     def test_zshrc_import_is_literal_and_does_not_execute(self):
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {}, clear=True):

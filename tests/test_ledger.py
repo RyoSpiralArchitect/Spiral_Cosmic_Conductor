@@ -60,9 +60,45 @@ class LedgerTests(unittest.TestCase):
         r = self.ledger.apply(d.ticket, patch("workers", 4, ["archived"]))
         self.assertEqual(r.reason, "unknown_or_unseen_evidence")
 
-    def test_correct_value_without_source_is_not_verified(self):
+    def test_correct_value_without_source_is_rejected_before_commit(self):
+        self.assertEqual(self.put("workers", 4).reason, "missing_source_reference")
+        self.assertEqual(self.ledger.snapshot()["workers"]["status"], "missing")
+
+    def test_evidence_is_scoped_to_target_not_dependency_closure(self):
+        self.put("workers", 4, ["current"])
+        self.put("per_worker", 75, ["current"])
+        before = self.ledger.snapshot()
+        d = self.ledger.issue("worker", "proposer", {"capacity"})
+        self.assertIn("current", d.view["sources"])
+        self.assertEqual(self.ledger.apply(d.ticket, patch("capacity", 300, ["current"])).reason,
+                         "evidence_outside_target_scope")
+        self.assertEqual(self.ledger.snapshot(), before)
+        self.assertEqual(self.ledger.apply(d.ticket, patch("capacity", 300)).reason, "replayed_grant")
+
+    def test_invalid_evidence_rolls_back_whole_batch(self):
+        d = self.ledger.issue("worker", "proposer", {"workers", "site_name"})
+        raw = patch("workers", 4, ["current"])
+        raw["ops"] += patch("site_name", "Beppu", ["current"])["ops"]
+        before = self.ledger.snapshot()
+        self.assertEqual(self.ledger.apply(d.ticket, raw).reason, "evidence_outside_target_scope")
+        self.assertEqual(self.ledger.snapshot(), before)
+
+    def test_feedback_is_scoped_and_cleared_after_a_new_proposal(self):
         self.put("workers", 4)
-        self.assertEqual(self.ledger.verify("workers").reason, "missing_source_reference")
+        d = self.ledger.issue("repair", "repairer", {"workers"})
+        self.assertEqual(d.view["repair_feedback"]["workers"]["reason"], "missing_source_reference")
+        self.assertNotIn("repair_feedback", self.ledger.issue("other", "proposer", {"site_name"}).view)
+        self.assertTrue(self.ledger.apply(d.ticket, patch("workers", 4, ["current"])).accepted)
+        self.assertNotIn("repair_feedback", self.ledger.issue("repair", "repairer", {"workers"}).view)
+
+    def test_dependency_feedback_identifies_the_failed_parent(self):
+        self.put("workers", 3, ["current"])
+        self.put("per_worker", 75, ["current"])
+        self.put("capacity", 225)
+        self.ledger.verify("workers")
+        d = self.ledger.issue("repair", "repairer", {"capacity"})
+        self.assertEqual(d.view["repair_feedback"]["capacity"], {
+            "kind": "verification_failed", "reason": "value_mismatch", "failed_claim_id": "workers"})
 
     def test_read_context_excludes_unrelated_sources(self):
         d = self.ledger.issue("worker", "proposer", {"workers"})
@@ -156,9 +192,12 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(self.ledger.apply(d.ticket, patch("workers", 8, op="revise_claim")).reason, "out_of_scope")
 
     def test_attach_evidence_requires_reverification(self):
-        self.put("workers", 4)
+        self.put("workers", 4, ["current"])
+        self.ledger.verify("workers")
         d = self.ledger.issue("repair", "repairer", {"workers"})
         self.assertTrue(self.ledger.apply(d.ticket, patch("workers", None, ["current"], "attach_evidence")).accepted)
+        self.assertEqual(self.ledger.snapshot()["workers"]["status"], "candidate")
+        self.assertEqual(self.ledger.snapshot()["workers"]["value"], 4)
         self.assertTrue(self.ledger.verify("workers").accepted)
 
     def test_grant_view_is_detached_from_state(self):

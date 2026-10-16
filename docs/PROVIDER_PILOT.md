@@ -61,6 +61,8 @@ critic dispatches are rejected before transport; the controller uses single-targ
 proposer and repairer dispatches. Ledger grants and validation remain authoritative.
 
 Use `--legacy-dispatch-contract` to reproduce the original prompt condition.
+Legacy requests omit the newer `repair_feedback` metadata after both proposal
+rejection and verification failure; the dispatch itself retains it for modern workers.
 Keep each execution in a fresh directory. Model nondeterminism means the same
 counts are not guaranteed on a new run.
 
@@ -72,19 +74,101 @@ outcomes, and hashes of the original captures. It excludes credentials, provider
 response IDs, local paths, and ledger authority tickets. The source captures were
 checked against their original integrity manifests before extracting this fixture.
 
-`test_recorded_live_exchanges_replay_with_identical_requests` checks the entire
-request body against each recorded SHA-256 before returning its captured response.
+`test_recorded_live_exchanges_replay_with_historical_request_hashes` reconstructs
+the historical message encoding (without the newer value specification and failure
+feedback, using the original `json_object` response format) and checks it against
+each recorded request SHA-256 before returning its captured response.
+Legacy requests are also checked directly against their captured body hashes,
+without removing metadata in the test.
 All 8 executions must reproduce their completion status, call count, results,
 patch rejections, and dependency invalidations through the real ledger and router.
-This also verifies that moving the corrected prompt into the shared builder
-preserves the request bytes observed in the 28-call corrected pilot. These tests
-are offline replays of earlier evidence, not fresh live generations. The injected
+The current prompt contains additional repair metadata, so these hashes describe
+the historical prompt condition, not byte identity with today's live requests.
+These tests are offline replays of earlier evidence, not fresh live generations. The injected
 case re-applies the explicit host fault while preserving the correct raw response.
 
 The other tests exercise loopback HTTP, simulated provider transports, bounded
 calls, malformed responses, credential preflight, and literal-only shell-variable
 import. A simulation uses a scripted fixture interpreter and cannot establish
 model quality. No test contacts a public provider.
+
+## Post-merge repair qualification (2026-10-13)
+
+A fresh pilot on merged commit `ad1b8f3` completed only 2/4 cases in 29 calls,
+although all 83 tests and CI passed. Mistral omitted a fact's evidence ID, and
+OpenAI changed the correct demand value while repairing it. In the injected case,
+Mistral also confused per-worker capacity with total capacity. These value errors
+were detected by the verifier, and the cases stopped at their existing limits.
+
+The injected case exposed a host inconsistency: the ledger accepted `current`
+as evidence for derived `capacity`, but capsule export rejected it. The exception
+left the pilot summary at `running` / 20 calls and prevented final manifest creation.
+Offline replay of all 29 responses reproduced the same exception on the merged source.
+
+The follow-up repair makes these boundaries explicit:
+
+- `Slot.evidence_ids` defines permitted references for the target slot. The ledger
+  rejects missing fact references or references outside that target before commit;
+  dependency source visibility does not authorize evidence for a derived slot.
+- `target_contract.value_spec` supplies a fact source/field pointer or a derived
+  operation/dependency list, without supplying the expected answer. Scoped host
+  feedback identifies the last rejection or failed verification and its root claim.
+  A later committed proposal supersedes old feedback.
+- A pilot exception or interruption finalizes the actual reserved call count,
+  `aborted` status, affected case, and partial integrity manifest before propagating
+  the error. Exception text is omitted. Output storage must remain writable; abrupt
+  process termination such as SIGKILL cannot execute this finalization.
+
+A first live qualification of these changes completed 3/4 cases in 27 calls.
+Artifact export succeeded for all four, including the incomplete injected case.
+However, OpenAI still returned duplicate evidence IDs once and an unauthorized
+fact-source ID for a derived repair once. Both outputs were rejected without
+normalization; the latter exhausted the target's two attempts.
+
+The default cloud pilot therefore also sends a per-dispatch `json_schema` response
+format with `strict: true`. The schema allows exactly one operation and fixes the
+operation, target ID, and evidence list to the existing dispatch contract. It leaves
+the integer/boolean/string value and brief reason to the model. It does not encode
+an expected answer, compute one, or rewrite responses. The local chat adapter keeps
+its existing JSON-mode setting because local-server schema support is not assumed.
+The ledger still checks every response, and provider rejection/refusal/truncation
+is recorded without fallback or transport retry. The plan records the response format.
+
+A separate live qualification on `c3661ed` accepted that schema on all three pinned
+models and completed 4/4 cases in 27 calls, with zero HTTP/parse failures and zero
+patch rejections. The ordinary cases took 6 calls each. The injected case took 9:
+Mistral's initial candidates used the injected workers=3, yielding capacity=225 and
+can_deliver=false; verification invalidated those three linked claims, and OpenAI
+repaired them to 4, 300, and true. No extra attempts or budget were added.
+
+| Case | Target-evidence/feedback repair, JSON mode (`8f55ba8`) | Same repair with response schema (`c3661ed`) |
+|---|---|---|
+| Mistral → OpenAI | Complete, 6 calls | Complete, 6 calls |
+| OpenAI → Gemini | Complete, 7 calls | Complete, 6 calls |
+| Gemini → Mistral | Complete, 6 calls | Complete, 6 calls |
+| Mistral → OpenAI, host fault injection | Incomplete, 8 calls | Complete, 9 calls |
+
+All completed cases verified `workers=4`, `per_worker=75`, `demand=240`,
+`capacity=300`, `can_deliver=true`, and `site_name="Beppu"`. Models generated JSON
+patches and short reasons; the host's final text rendered only the verified target
+values (`can_deliver` and `site_name`). These runs exercised shared-state proposals,
+deterministic verification, dependency invalidation, and provider routing.
+
+Both new live captures were replayed offline against their matching frozen source:
+all 54 request bodies and all 8 final claim states matched, including the failed
+response and incomplete case. All 8 ledger audits and artifact manifests passed.
+Exchange token totals include the failed response: the first condition used 25,451
+input / 1,611 output tokens; the schema condition used 26,655 / 1,432. These are
+provider-reported counts, not prices; runtime reply totals omit the failed response.
+One pilot per condition does not estimate a completion rate or isolate a causal
+model-quality effect. The unchanged per-claim and per-run limits can still stop
+future runs that produce wrong values or unavailable responses.
+
+`provider_failures_2026-10-13.json` preserves four actual responses from the failed
+pilot. Regression tests check early rejection, unchanged bad output, scoped repair
+instructions, independent value verification, and successful artifact export even
+when a recorded bad repair leaves the task incomplete. Failed historical runs are
+not relabeled successful by these counterfactual tests.
 
 These are observations on one closed-world arithmetic fixture, not evidence of
 open-ended reasoning quality, a provider ranking, general safety, or benchmark gains.
@@ -102,5 +186,6 @@ model performance.
 Protocol references consulted for this pilot:
 
 - [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)
-- [Mistral JSON mode](https://docs.mistral.ai/studio/conversations/structured-output/json_mode)
+- [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
+- [Mistral custom Structured Outputs](https://docs.mistral.ai/studio/conversations/structured-output/custom)
 - [Gemini OpenAI compatibility](https://ai.google.dev/gemini-api/docs/openai)
