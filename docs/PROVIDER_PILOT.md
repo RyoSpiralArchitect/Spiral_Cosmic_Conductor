@@ -61,6 +61,8 @@ critic dispatches are rejected before transport; the controller uses single-targ
 proposer and repairer dispatches. Ledger grants and validation remain authoritative.
 
 Use `--legacy-dispatch-contract` to reproduce the original prompt condition.
+Legacy requests omit the newer `repair_feedback` metadata after both proposal
+rejection and verification failure; the dispatch itself retains it for modern workers.
 Keep each execution in a fresh directory. Model nondeterminism means the same
 counts are not guaranteed on a new run.
 
@@ -76,6 +78,8 @@ checked against their original integrity manifests before extracting this fixtur
 the historical message encoding (without the newer value specification and failure
 feedback, using the original `json_object` response format) and checks it against
 each recorded request SHA-256 before returning its captured response.
+Legacy requests are also checked directly against their captured body hashes,
+without removing metadata in the test.
 All 8 executions must reproduce their completion status, call count, results,
 patch rejections, and dependency invalidations through the real ledger and router.
 The current prompt contains additional repair metadata, so these hashes describe

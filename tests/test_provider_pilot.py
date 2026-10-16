@@ -112,6 +112,38 @@ class ProviderPilotTests(unittest.TestCase):
             self.assertNotIn("target_contract", json.loads(row["request"]["messages"][1]["content"]))
             self.assertEqual(row["request"]["response_format"], {"type": "json_object"})
 
+    def test_legacy_requests_omit_failure_feedback_without_mutating_dispatch(self):
+        for failure in ("patch_rejected", "verification_failed"):
+            with self.subTest(failure=failure), Ledger(":memory:", capacity_task()) as ledger:
+                initial = ledger.issue("mistral-fast", "proposer", {"workers"})
+                proposed = {"ops": [{"op": "add_claim", "claim_id": "workers",
+                    "value": 3 if failure == "verification_failed" else 4,
+                    "evidence_ids": [] if failure == "patch_rejected" else ["current"],
+                    "reason": "Trigger a host failure for legacy-request regression."}]}
+                result = ledger.apply(initial.ticket, proposed)
+                self.assertEqual(result.accepted, failure == "verification_failed")
+                if result.accepted:
+                    self.assertEqual(ledger.verify("workers").reason, "value_mismatch")
+                dispatch = ledger.issue("mistral-careful", "repairer", {"workers"})
+                self.assertEqual(dispatch.view["repair_feedback"]["workers"]["kind"], failure)
+                original_view = canonical(dispatch.view)
+                rows = []
+                legacy = ProviderWorker("mistral", "careful", "simulated", CallBudget(), rows.append,
+                                        explicit_contract=False)
+                legacy.propose(dispatch, 1)
+                request = rows[-1]["request"]
+                data = json.loads(request["messages"][1]["content"])
+                self.assertNotIn("repair_feedback", data["view"])
+                self.assertNotIn("target_contract", data)
+                self.assertEqual(request["messages"][0]["content"], SYSTEM_PROMPT)
+                self.assertEqual(request["response_format"], {"type": "json_object"})
+                self.assertEqual(canonical(dispatch.view), original_view)
+                modern = ProviderWorker("mistral", "careful", "simulated", CallBudget(), rows.append)
+                modern.propose(dispatch, 1)
+                modern_data = json.loads(rows[-1]["request"]["messages"][1]["content"])
+                self.assertEqual(modern_data["target_contract"]["repair_feedback"],
+                                 dispatch.view["repair_feedback"]["workers"])
+
     def test_schema_locks_dispatch_metadata_but_not_the_answer(self):
         # Inspect real transport payloads for all three providers and both slot kinds.
         for provider in PROVIDERS:
@@ -156,6 +188,9 @@ class ProviderPilotTests(unittest.TestCase):
                     self.assertTrue(remaining, "Unexpected extra provider call")
                     recorded = remaining.pop(0)
                     self.assertEqual(worker.provider, recorded["provider"])
+                    if not case["explicit_contract"]:
+                        # Legacy transport must match directly, without hiding added metadata.
+                        self.assertEqual(hashlib.sha256(body).hexdigest(), recorded["request_sha256"])
                     historical = json.loads(body)
                     historical["response_format"] = {"type": "json_object"}
                     data = json.loads(historical["messages"][1]["content"])

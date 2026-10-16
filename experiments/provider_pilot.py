@@ -131,8 +131,9 @@ class ProviderWorker:
                 "name": "scoped_patch", "strict": True, "schema": worker_patch_schema(dispatch)}}
         else:
             # Explicit historical comparison only; normal runs use the repaired path.
+            legacy_view = {key: value for key, value in dispatch.view.items() if key != "repair_feedback"}
             messages = [{"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": canonical({"view": dispatch.view, "patch_schema": PATCH_SCHEMA})}]
+                        {"role": "user", "content": canonical({"view": legacy_view, "patch_schema": PATCH_SCHEMA})}]
             response_format = {"type": "json_object"}
         payload: dict[str, Any] = {
             "model": self.spec.model, "stream": False, "temperature": 0,
