@@ -67,7 +67,7 @@ def envelope(stage, provider, snapshot):
                "messages": [{"role": "system", "content": instructions(stage)},
                             {"role": "user", "content": canonical(model_input(snapshot))}],
                "response_format": {"type": "json_schema", "json_schema": {
-                   "name": "text_" + stage, "strict": True, "schema": response_schema(stage)}}}
+                   "name": "text_" + stage, "strict": True, "schema": response_schema(stage, snapshot)}}}
     payload["max_completion_tokens" if provider == "openai" else "max_tokens"] = MAX_TOKENS
     if provider == "openai":
         payload["store"] = False

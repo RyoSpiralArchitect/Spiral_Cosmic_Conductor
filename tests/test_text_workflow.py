@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 from conductor.shared_memory import Publication
-from conductor.text_workflow import (abstract_teacher, accept, model_input, open_text_memory, resolve_span,
+from conductor.text_workflow import (abstract_teacher, accept, model_input, open_text_memory, resolve_span, response_schema,
                                      seed, segments, view)
 from conductor.types import ContractError, canonical, strict_json
 
@@ -147,6 +147,35 @@ class TextWorkflowTests(unittest.TestCase):
         rows = segments(text, "D")
         self.assertEqual(len(rows), 3)
         self.assertEqual([text[r["start"]:r["end"]] for r in rows], ["# 見出し", "- 最初の手順", "- 次の手順"])
+
+    def test_wire_schema_limits_and_allowed_refs_match_the_host_contract(self):
+        snapshot = view(self.memory, "critic")
+        schema = response_schema("critic", snapshot)["properties"]["findings"]
+        self.assertEqual(schema["minItems"], 6)
+        self.assertEqual(schema["maxItems"], 6)
+        fields = schema["items"]["properties"]
+        self.assertEqual(fields["draft_ids"]["maxItems"], 8)
+        self.assertEqual(fields["draft_ids"]["items"]["enum"], ["D01", "D02"])
+        self.assertEqual(fields["source_ids"]["items"]["enum"], ["M01", "M02"])
+        self.assertEqual(fields["source_ids"]["minItems"], 1)
+        self.review()
+        revision = response_schema("reviser", view(self.memory, "reviser"))["properties"]
+        self.assertEqual(revision["decisions"]["maxItems"], 6)
+        self.assertEqual(revision["decisions"]["items"]["properties"]["output_ids"]["maxItems"], 16)
+
+    def test_captured_provider_reference_overflow_is_rejected_without_truncation(self):
+        fixture = strict_json((Path(__file__).parent / "fixtures/text_memory_reference_overflow_2026-10-25.json").read_text())
+        with open_text_memory(Path(self.tmp.name) / "captured.sqlite", fixture["episode"]) as memory:
+            seed(memory, fixture["memo"])
+            accept(memory, "proposer", fixture["proposal_content"], expected_revision=1)
+            raw = strict_json(fixture["review_content"])
+            allowed = {s["id"] for s in segments(strict_json(fixture["proposal_content"])["text"], "D")}
+            self.assertTrue(all(set(f["draft_ids"]) <= allowed for f in raw["findings"]))
+            self.assertEqual(max(len(f["draft_ids"]) for f in raw["findings"]), 19)
+            with self.assertRaisesRegex(ContractError, "sentence references"):
+                accept(memory, "critic", fixture["review_content"], expected_revision=2)
+            self.assertEqual(memory.history("critic", "review"), [])
+            self.assertEqual(memory.audit()["event_count"], 2)
 
 
 if __name__ == "__main__":

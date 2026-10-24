@@ -241,22 +241,36 @@ def _object(properties: dict) -> dict:
     return {"type": "object", "properties": properties, "required": list(properties), "additionalProperties": False}
 
 
-def response_schema(stage: str) -> dict:
+def response_schema(stage: str, snapshot: dict | None = None) -> dict:
     string = {"type": "string"}
-    ids = {"type": "array", "items": string}
+    def ids(minimum=0, maximum=8, allowed=None):
+        item = {"type": "string"}
+        if allowed is not None:
+            item["enum"] = sorted(allowed)
+        return {"type": "array", "items": item, "minItems": minimum, "maxItems": maximum}
     if stage == "proposer":
         return _object({"text": string})
     if stage == "critic":
         element = _object({"polarity": {"type": "string", "enum": ["positive", "negative", "neutral"]},
                            "change": {"type": "string", "enum": ["+", "null", "-"]}, "description": string})
-        finding = _object({"id": string, "principle_id": string, "source_ids": ids, "draft_ids": ids,
-                           "elements": {"type": "array", "items": element}, "recommendation": string})
-        return _object({"findings": {"type": "array", "items": finding}})
+        docs = documents(snapshot) if snapshot else None
+        source_ids = {s["id"] for s in segments(docs["memo"]["text"], "M")} if docs else None
+        draft_ids = {s["id"] for s in segments(docs["draft"]["text"], "D")} if docs else None
+        principles = [p["id"] for p in abstract_teacher()["principles"]]
+        finding = _object({"id": string, "principle_id": {"type": "string", "enum": principles},
+                           "source_ids": ids(1, 8, source_ids), "draft_ids": ids(0, 8, draft_ids),
+                           "elements": {"type": "array", "items": element, "minItems": 1, "maxItems": 4}, "recommendation": string})
+        return _object({"findings": {"type": "array", "items": finding, "minItems": len(principles), "maxItems": len(principles)}})
     if stage == "reviser":
         sentence = _object({"id": string, "text": string})
-        decision = _object({"finding_id": string, "disposition": {"type": "string", "enum": ["adopt", "reject", "hold"]},
-                            "reason": string, "output_ids": ids})
-        return _object({"sentences": {"type": "array", "items": sentence}, "decisions": {"type": "array", "items": decision}})
+        finding_ids = ([f["id"] for f in strict_json(documents(snapshot)["review"]["text"])["findings"]]
+                       if snapshot else None)
+        finding_schema = {"type": "string", **({"enum": finding_ids} if finding_ids is not None else {})}
+        decision = _object({"finding_id": finding_schema, "disposition": {"type": "string", "enum": ["adopt", "reject", "hold"]},
+                            "reason": string, "output_ids": ids(0, 16)})
+        count = len(finding_ids) if finding_ids is not None else len(abstract_teacher()["principles"])
+        return _object({"sentences": {"type": "array", "items": sentence, "minItems": 1, "maxItems": 32},
+                        "decisions": {"type": "array", "items": decision, "minItems": count, "maxItems": count}})
     raise ContractError("Unknown response schema stage")
 
 

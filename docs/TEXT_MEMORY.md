@@ -54,6 +54,8 @@ The critic returns six findings, one per abstract principle, each carrying:
 
 The reviser returns named output units R01, R02, … and one disposition for **every** finding: adopt, reject, or hold, with a short public rationale. Each adopted finding must reference at least one actual output unit. Unknown IDs, duplicate dispositions, missing findings, and invented authority fields fail closed.
 
+The API JSON Schema includes collection bounds and the source/draft/finding IDs allowed by that particular snapshot. Host validation still rechecks them. A captured response with nineteen draft references in one finding remains a rejection fixture; the implementation does not silently trim it to fit the eight-reference limit.
+
 The host joins output units with newlines and binds source, draft, and output spans to their exact artifact versions and hashes. Spans store offsets, a quote hash, and at most 120 preview characters; full quotations are resolved from scoped historical artifacts, avoiding repeated copies of long text. Raw provider responses are preserved separately. A revision unit may be a paragraph; its ID is not proof that it is exactly one linguistic sentence.
 
 Every decision has structural_status=linked and effect_status=unassessed. A model may point to a real sentence while misrepresenting its meaning. adopt is therefore the model's declared disposition, not automatic issue resolution. Holds remain explicit in held_finding_ids; rejected findings retain their reasons.
