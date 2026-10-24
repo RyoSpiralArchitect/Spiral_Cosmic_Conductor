@@ -43,6 +43,13 @@ python3 -I -S -B experiments/provider_pilot.py --mode simulated --out runs/provi
 
 The [provider pilot guide](docs/PROVIDER_PILOT.md) describes the explicit live command, required environment variables, recorded failures and repairs. Both chat adapters supply a per-dispatch operation and evidence contract; the model still generates the value and the ledger verifies it. The unit suite also replays 45 recorded provider responses without credentials or live calls.
 
+For free-text handoffs with a small persistent public memory:
+
+    python3 -I -S -B experiments/text_memory_pilot.py --out runs/text-simulation
+    python3 -I -S -B experiments/text_memory_pilot.py --mode replay --replay runs/text-simulation --out runs/text-replay
+
+The [text memory guide](docs/TEXT_MEMORY.md) explains the abstract teacher, episode isolation, source/critique/revision links, and bounded live pilot. Each role reopens its episode's SQLite memory. An adopted finding must point to actual output text, but a valid link does **not** establish that the finding was correctly addressed. These text artifacts remain semantically unassessed and do not enter the verified claim ledger.
+
 ## Actual runtime boundaries
 
 ```text

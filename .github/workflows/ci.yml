@@ -22,3 +22,7 @@ jobs:
           python -m conductor cosmic-demo --out runs/ci
           python -m conductor audit runs/ci
           python -m conductor cosmic-demo --no-speculation --out runs/ci-guarded
+      - name: Public text memory simulation and replay
+        run: |
+          python -I -S -B experiments/text_memory_pilot.py --out runs/text-simulation
+          python -I -S -B experiments/text_memory_pilot.py --mode replay --replay runs/text-simulation --out runs/text-replay
