@@ -50,6 +50,8 @@ For free-text handoffs with a small persistent public memory:
 
 The [text memory guide](docs/TEXT_MEMORY.md) explains the abstract teacher, episode isolation, source/critique/revision links, and bounded live pilot. Each role reopens its episode's SQLite memory. An adopted finding must point to actual output text, but a valid link does **not** establish that the finding was correctly addressed. These text artifacts remain semantically unassessed and do not enter the verified claim ledger.
 
+For tasks that need source fidelity, append [TextConductor's source comparison](docs/SOURCE_ALIGNMENT.md) before releasing the result. It compares every source and output unit, routes blockers to a bounded repair, and rechecks against the same original. Compatible additions remain allowed. Failed or unresolved checks produce a held result; a successful model assessment releases a candidate without promoting it to verified truth. Run the offline mechanism pilot with `python3 -I -S -B experiments/source_alignment_pilot.py --out runs/source-check`.
+
 ## Actual runtime boundaries
 
 ```text

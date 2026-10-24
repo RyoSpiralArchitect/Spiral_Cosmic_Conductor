@@ -1,0 +1,771 @@
+{
+  "annotation_basis": "Manually authored mechanism fixture based on a captured synthetic candidate. Assessments and repair are not live model detections, not gold labels, and are never supplied as a teacher to live workers.",
+  "memo": "来月、共有の道具棚の貸出手順を45分だけ試したい。利用者は最大7人、進行役は1人で、追加の係は頼めない。準備費は2,400円以内。試す道具の種類と点数はまだ決まっていない。\n水曜午後なら部屋が使えるかもしれないが、土曜にしか来られない人もおり、日程と利用許可は未確定。スマートフォンを持たない人でも参加できるようにしたい。氏名・連絡先の収集や写真撮影は行わず、登録サービスの利用も前提にしない。\n貸出や返却で迷った点が、次の手順案のどこを変えたかを追いたい。貸す側と借りる側の意見が合わなくても、その場で一本化する必要はない。準備が整わなければ模擬カードで手順だけ試す案も考えているが、これはまだ選択肢。\n",
+  "candidate": "来月、共有の道具棚の貸出手順を45分間試行的に実施します。\n参加者は最大7人、進行役は1人で、追加の係は依頼しません。\n準備費用は2,400円以内に抑えます。\n試行で使用する道具の種類と点数は未確定です。\n開催日は水曜午後の部屋利用可否を優先的に確認しつつ、土曜開催の可能性も参加者の都合により検討します。利用許可申請手続きは未確定です。\nスマートフォンを持たない人も参加可能な仕組みを用意します。\n氏名・連絡先の収集や写真撮影は行わず、登録サービスの利用も前提としません。\n貸出や返却で迷った点は記録し、次の手順案との差分を追跡します。\n貸す側と借りる側の意見が合わなくても、その場で一本化する必要はありません。\n準備が整わなければ模擬カードで手順だけを試す案も検討中です。\n準備段階では、日程調整として水曜午後の部屋利用可否の確認を優先し、土曜開催の可能性も検討します。利用許可申請手続きは未確定です。\n道具の選定は試行で使用する種類と点数を決定し、模擬カードの使用も選択肢の一つとして検討します。\n予算編成では2,400円以内で必要な物品（例：模擬カード、記録用紙、筆記用具等）を調達し、費用内訳を記録して超過リスクを回避します。\n実施当日は45分間で、開始5分は進行役による趣旨説明（ルール、時間配分、注意事項）と参加者の自己紹介（任意、氏名のみ）を行います。\n手順説明と模擬体験（25分）では、進行役が共有の道具棚の貸出手順を実演し、参加者に順番に体験してもらい、不明点を記録します。貸出と返却の各ステップで生じた疑問点もメモします。\n振り返りと記録（10分）では、参加者からの意見を自由に聴取し、記録された疑問点や意見を整理して次回の手順改善に反映させる方針を確認します。模擬カードの使用有無や実施内容も記録します。\n終了5分は進行役からのまとめと次回の展望、参加者への簡単なアンケート（任意、改善点の自由記述）を行います。\n記録方法は疑問点や意見を紙媒体（模造紙や付箋等）で記録し、進行役が中心となって整理し次回の手順案に反映させます。\n改善サイクルでは記録した内容を基に次回の手順案を作成し、貸出・返却の流れで迷いやすい箇所を優先的に見直します。参加者の意見が分かれた場合は双方の主張を記録として残し、合意を強制しません。\n担当は進行役が手順の実演、進行、記録の整理を担当し、参加者は手順の体験、意見の表明、記録への協力（任意）を行います。準備係は任意で模擬カードや記録用品の準備、会場設営を担当し、進行役が兼任可能です。\n未確定事項として日程（水曜午後の部屋利用可否、土曜開催の可能性）、道具の選定（種類と点数）、模擬カードの使用有無、利用許可申請手続き、記録の保管場所や次回への引き継ぎ方法を明示しています。\n注意事項として個人情報の収集や写真撮影を行わず、登録サービスの利用も前提としないこと、参加者の意見が分かれた場合はその場で一本化せず記録として残すこと、費用は2,400円以内に厳密に管理すること、記録した疑問点や意見は必ず次回の手順改善に反映させることを明記しています。",
+  "candidate_sha256": "19afea92d335089c67e0951c0d98db24b2644584b83f07e8d528e98bb8779268",
+  "before_assessment": {
+    "sources": [
+      {
+        "id": "M01",
+        "status": "preserved",
+        "candidate_ids": [
+          "C01",
+          "C14"
+        ],
+        "reason": "時間枠が保持されている。"
+      },
+      {
+        "id": "M02",
+        "status": "uncertain",
+        "candidate_ids": [
+          "C02",
+          "C20"
+        ],
+        "reason": "追加係なしと任意の準備係との関係が不明。"
+      },
+      {
+        "id": "M03",
+        "status": "preserved",
+        "candidate_ids": [
+          "C03",
+          "C13",
+          "C22"
+        ],
+        "reason": "準備費の上限が保持されている。"
+      },
+      {
+        "id": "M04",
+        "status": "preserved",
+        "candidate_ids": [
+          "C04",
+          "C12",
+          "C21"
+        ],
+        "reason": "道具の種類と点数の未確定性が保持されている。"
+      },
+      {
+        "id": "M05",
+        "status": "preserved",
+        "candidate_ids": [
+          "C05",
+          "C11",
+          "C21"
+        ],
+        "reason": "日程と利用許可の未確定性が保持されている。"
+      },
+      {
+        "id": "M06",
+        "status": "preserved",
+        "candidate_ids": [
+          "C06",
+          "C18"
+        ],
+        "reason": "スマホを前提としない参加方法が残る。"
+      },
+      {
+        "id": "M07",
+        "status": "uncertain",
+        "candidate_ids": [
+          "C07",
+          "C14",
+          "C22"
+        ],
+        "reason": "氏名のみの自己紹介を記録するか不明。"
+      },
+      {
+        "id": "M08",
+        "status": "uncertain",
+        "candidate_ids": [
+          "C08",
+          "C18",
+          "C19"
+        ],
+        "reason": "迷いと次の手順変更の対応づけ方法が未記載。"
+      },
+      {
+        "id": "M09",
+        "status": "preserved",
+        "candidate_ids": [
+          "C09",
+          "C19",
+          "C22"
+        ],
+        "reason": "意見を一本化しない方針が残る。"
+      },
+      {
+        "id": "M10",
+        "status": "preserved",
+        "candidate_ids": [
+          "C10",
+          "C12"
+        ],
+        "reason": "模擬カードが選択肢として残る。"
+      }
+    ],
+    "candidates": [
+      {
+        "id": "C01",
+        "origin": "source",
+        "source_ids": [
+          "M01"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C02",
+        "origin": "source",
+        "source_ids": [
+          "M02"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C03",
+        "origin": "source",
+        "source_ids": [
+          "M03"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C04",
+        "origin": "source",
+        "source_ids": [
+          "M04"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C05",
+        "origin": "source",
+        "source_ids": [
+          "M05"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C06",
+        "origin": "source",
+        "source_ids": [
+          "M06"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C07",
+        "origin": "source",
+        "source_ids": [
+          "M07"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C08",
+        "origin": "source",
+        "source_ids": [
+          "M08"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C09",
+        "origin": "source",
+        "source_ids": [
+          "M09"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C10",
+        "origin": "source",
+        "source_ids": [
+          "M10"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C11",
+        "origin": "mixed",
+        "source_ids": [
+          "M05"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C12",
+        "origin": "mixed",
+        "source_ids": [
+          "M04",
+          "M10"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C13",
+        "origin": "mixed",
+        "source_ids": [
+          "M03"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C14",
+        "origin": "mixed",
+        "source_ids": [
+          "M01",
+          "M07"
+        ],
+        "compatibility": "uncertain",
+        "reason": "追加の自己紹介と原文の氏名制約の関係が不明。"
+      },
+      {
+        "id": "C15",
+        "origin": "mixed",
+        "source_ids": [
+          "M01",
+          "M08"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C16",
+        "origin": "mixed",
+        "source_ids": [
+          "M01",
+          "M08"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C17",
+        "origin": "mixed",
+        "source_ids": [
+          "M01"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C18",
+        "origin": "mixed",
+        "source_ids": [
+          "M06",
+          "M08"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C19",
+        "origin": "mixed",
+        "source_ids": [
+          "M08",
+          "M09"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C20",
+        "origin": "mixed",
+        "source_ids": [
+          "M02"
+        ],
+        "compatibility": "uncertain",
+        "reason": "任意の準備係を原条件内で確保できるか不明。"
+      },
+      {
+        "id": "C21",
+        "origin": "mixed",
+        "source_ids": [
+          "M04",
+          "M05",
+          "M10"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C22",
+        "origin": "mixed",
+        "source_ids": [
+          "M03",
+          "M07",
+          "M08",
+          "M09"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      }
+    ]
+  },
+  "repair": {
+    "units": [
+      {
+        "id": "C01",
+        "text": "来月、共有の道具棚の貸出手順を45分間試行的に実施します。"
+      },
+      {
+        "id": "C02",
+        "text": "参加者は最大7人、進行役は1人で、追加の係は依頼しません。"
+      },
+      {
+        "id": "C03",
+        "text": "準備費用は2,400円以内に抑えます。"
+      },
+      {
+        "id": "C04",
+        "text": "試行で使用する道具の種類と点数は未確定です。"
+      },
+      {
+        "id": "C05",
+        "text": "開催日は水曜午後の部屋利用可否を優先的に確認しつつ、土曜開催の可能性も参加者の都合により検討します。利用許可申請手続きは未確定です。"
+      },
+      {
+        "id": "C06",
+        "text": "スマートフォンを持たない人も参加可能な仕組みを用意します。"
+      },
+      {
+        "id": "C07",
+        "text": "氏名・連絡先の収集や写真撮影は行わず、登録サービスの利用も前提としません。"
+      },
+      {
+        "id": "C08",
+        "text": "貸出や返却で迷った点は記録し、次の手順案との差分を追跡します。"
+      },
+      {
+        "id": "C09",
+        "text": "貸す側と借りる側の意見が合わなくても、その場で一本化する必要はありません。"
+      },
+      {
+        "id": "C10",
+        "text": "準備が整わなければ模擬カードで手順だけを試す案も検討中です。"
+      },
+      {
+        "id": "C11",
+        "text": "準備段階では、日程調整として水曜午後の部屋利用可否の確認を優先し、土曜開催の可能性も検討します。利用許可申請手続きは未確定です。"
+      },
+      {
+        "id": "C12",
+        "text": "道具の選定は試行で使用する種類と点数を決定し、模擬カードの使用も選択肢の一つとして検討します。"
+      },
+      {
+        "id": "C13",
+        "text": "予算編成では2,400円以内で必要な物品（例：模擬カード、記録用紙、筆記用具等）を調達し、費用内訳を記録して超過リスクを回避します。"
+      },
+      {
+        "id": "C14",
+        "text": "実施当日は45分間で、開始5分は進行役による趣旨説明だけを行います。氏名を尋ねる自己紹介は設けません。"
+      },
+      {
+        "id": "C15",
+        "text": "手順説明と模擬体験（25分）では、進行役が共有の道具棚の貸出手順を実演し、参加者に順番に体験してもらい、不明点を記録します。貸出と返却の各ステップで生じた疑問点もメモします。"
+      },
+      {
+        "id": "C16",
+        "text": "振り返りと記録（10分）では、参加者からの意見を自由に聴取し、記録された疑問点や意見を整理して次回の手順改善に反映させる方針を確認します。模擬カードの使用有無や実施内容も記録します。"
+      },
+      {
+        "id": "C17",
+        "text": "終了5分は進行役からのまとめと次回の展望、参加者への簡単なアンケート（任意、改善点の自由記述）を行います。"
+      },
+      {
+        "id": "C18",
+        "text": "記録方法は疑問点や意見を紙媒体（模造紙や付箋等）で記録し、進行役が中心となって整理し次回の手順案に反映させます。"
+      },
+      {
+        "id": "C19",
+        "text": "迷いにQ番号、手順箇所にP番号を付け、Q番号・貸す側か借りる側か・旧手順のP番号・変更案・採用／不採用／保留と理由を紙の対応表に残します。意見が一致しない点は保留欄で併記します。"
+      },
+      {
+        "id": "C20",
+        "text": "進行役1人が準備・実演・進行・記録整理を担当し、別の準備係は置きません。参加者の意見表明や記録への協力は任意とします。"
+      },
+      {
+        "id": "C21",
+        "text": "未確定事項として日程（水曜午後の部屋利用可否、土曜開催の可能性）、道具の選定（種類と点数）、模擬カードの使用有無、利用許可申請手続き、記録の保管場所や次回への引き継ぎ方法を明示しています。"
+      },
+      {
+        "id": "C22",
+        "text": "個人情報の収集・写真撮影・登録サービスは用いず、予算は2,400円以内とします。記録した迷いや意見は対応表で検討し、未解決なら次の案でも保留と明示します。"
+      }
+    ],
+    "resolutions": [
+      {
+        "id": "C14",
+        "action": "addressed",
+        "candidate_ids": [
+          "C14"
+        ],
+        "reason": "模擬の修正箇所。効果は再照合で判断する。"
+      },
+      {
+        "id": "C20",
+        "action": "addressed",
+        "candidate_ids": [
+          "C20"
+        ],
+        "reason": "模擬の修正箇所。効果は再照合で判断する。"
+      },
+      {
+        "id": "M02",
+        "action": "addressed",
+        "candidate_ids": [
+          "C02",
+          "C20"
+        ],
+        "reason": "模擬の修正箇所。効果は再照合で判断する。"
+      },
+      {
+        "id": "M07",
+        "action": "addressed",
+        "candidate_ids": [
+          "C07",
+          "C14"
+        ],
+        "reason": "模擬の修正箇所。効果は再照合で判断する。"
+      },
+      {
+        "id": "M08",
+        "action": "addressed",
+        "candidate_ids": [
+          "C19"
+        ],
+        "reason": "模擬の修正箇所。効果は再照合で判断する。"
+      }
+    ]
+  },
+  "after_assessment": {
+    "sources": [
+      {
+        "id": "M01",
+        "status": "preserved",
+        "candidate_ids": [
+          "C01",
+          "C14"
+        ],
+        "reason": "時間枠が保持されている。"
+      },
+      {
+        "id": "M02",
+        "status": "preserved",
+        "candidate_ids": [
+          "C02",
+          "C20"
+        ],
+        "reason": "模擬修正の手順と原条件との対応を確認したとの注釈。"
+      },
+      {
+        "id": "M03",
+        "status": "preserved",
+        "candidate_ids": [
+          "C03",
+          "C13",
+          "C22"
+        ],
+        "reason": "準備費の上限が保持されている。"
+      },
+      {
+        "id": "M04",
+        "status": "preserved",
+        "candidate_ids": [
+          "C04",
+          "C12",
+          "C21"
+        ],
+        "reason": "道具の種類と点数の未確定性が保持されている。"
+      },
+      {
+        "id": "M05",
+        "status": "preserved",
+        "candidate_ids": [
+          "C05",
+          "C11",
+          "C21"
+        ],
+        "reason": "日程と利用許可の未確定性が保持されている。"
+      },
+      {
+        "id": "M06",
+        "status": "preserved",
+        "candidate_ids": [
+          "C06",
+          "C18"
+        ],
+        "reason": "スマホを前提としない参加方法が残る。"
+      },
+      {
+        "id": "M07",
+        "status": "preserved",
+        "candidate_ids": [
+          "C07",
+          "C14",
+          "C22"
+        ],
+        "reason": "模擬修正の手順と原条件との対応を確認したとの注釈。"
+      },
+      {
+        "id": "M08",
+        "status": "preserved",
+        "candidate_ids": [
+          "C08",
+          "C18",
+          "C19"
+        ],
+        "reason": "模擬修正の手順と原条件との対応を確認したとの注釈。"
+      },
+      {
+        "id": "M09",
+        "status": "preserved",
+        "candidate_ids": [
+          "C09",
+          "C19",
+          "C22"
+        ],
+        "reason": "意見を一本化しない方針が残る。"
+      },
+      {
+        "id": "M10",
+        "status": "preserved",
+        "candidate_ids": [
+          "C10",
+          "C12"
+        ],
+        "reason": "模擬カードが選択肢として残る。"
+      }
+    ],
+    "candidates": [
+      {
+        "id": "C01",
+        "origin": "source",
+        "source_ids": [
+          "M01"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C02",
+        "origin": "source",
+        "source_ids": [
+          "M02"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C03",
+        "origin": "source",
+        "source_ids": [
+          "M03"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C04",
+        "origin": "source",
+        "source_ids": [
+          "M04"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C05",
+        "origin": "source",
+        "source_ids": [
+          "M05"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C06",
+        "origin": "source",
+        "source_ids": [
+          "M06"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C07",
+        "origin": "source",
+        "source_ids": [
+          "M07"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C08",
+        "origin": "source",
+        "source_ids": [
+          "M08"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C09",
+        "origin": "source",
+        "source_ids": [
+          "M09"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C10",
+        "origin": "source",
+        "source_ids": [
+          "M10"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C11",
+        "origin": "mixed",
+        "source_ids": [
+          "M05"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C12",
+        "origin": "mixed",
+        "source_ids": [
+          "M04",
+          "M10"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C13",
+        "origin": "mixed",
+        "source_ids": [
+          "M03"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C14",
+        "origin": "mixed",
+        "source_ids": [
+          "M01",
+          "M07"
+        ],
+        "compatibility": "compatible",
+        "reason": "模擬修正により原条件との不明点が解消したとの注釈。"
+      },
+      {
+        "id": "C15",
+        "origin": "mixed",
+        "source_ids": [
+          "M01",
+          "M08"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C16",
+        "origin": "mixed",
+        "source_ids": [
+          "M01",
+          "M08"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C17",
+        "origin": "mixed",
+        "source_ids": [
+          "M01"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C18",
+        "origin": "mixed",
+        "source_ids": [
+          "M06",
+          "M08"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C19",
+        "origin": "mixed",
+        "source_ids": [
+          "M08",
+          "M09"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C20",
+        "origin": "mixed",
+        "source_ids": [
+          "M02"
+        ],
+        "compatibility": "compatible",
+        "reason": "模擬修正により原条件との不明点が解消したとの注釈。"
+      },
+      {
+        "id": "C21",
+        "origin": "mixed",
+        "source_ids": [
+          "M04",
+          "M05",
+          "M10"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      },
+      {
+        "id": "C22",
+        "origin": "mixed",
+        "source_ids": [
+          "M03",
+          "M07",
+          "M08",
+          "M09"
+        ],
+        "compatibility": "compatible",
+        "reason": "原条件を保持するか、その範囲での設計追加。"
+      }
+    ]
+  },
+  "expected_initial_blockers": [
+    "C14",
+    "C20",
+    "M02",
+    "M07",
+    "M08"
+  ]
+}

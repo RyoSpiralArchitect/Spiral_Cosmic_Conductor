@@ -4,6 +4,8 @@
 from .types import VERSION, Task, ContractError
 from .ledger import Ledger
 from .runtime import Conductor, Limits
+from .source_alignment import SourcePolicy
+from .text_conductor import TextConductor
 
 __version__ = VERSION
-__all__ = ["Task", "ContractError", "Ledger", "Conductor", "Limits"]
+__all__ = ["Task", "ContractError", "Ledger", "Conductor", "Limits", "SourcePolicy", "TextConductor"]
