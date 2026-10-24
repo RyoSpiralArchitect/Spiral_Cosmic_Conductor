@@ -240,7 +240,7 @@ def response_schema(stage: str) -> dict:
 
 STAGE_INSTRUCTIONS = {
     "proposer": "原文と抽象原則から実施案の初稿を書く。日本語で900〜1400字を目安に、条件、具体的な流れ、担当、未確定事項を区別する。JSONのtextに全文を返す。",
-    "critic": "初稿を原文と抽象原則に照らして批評する。G01〜G06をそれぞれ一度、計6 findingsで扱い、idはF01〜F06とする。各findingのsource_idsには根拠の原文M番号を1〜8個、draft_idsには対応する初稿D番号を0〜8個指定する。欠落で対応する初稿箇所がなければ空配列にする。各findingは1〜4個のelementsを持ち、polarity/change/descriptionで原文から初稿への変化を記述する。問題を捏造せず、保持すべき長所も含め、recommendationは500字以内。各descriptionは300字以内。具体的な判断不能は推薦文で保留と明示する。",
+    "critic": "初稿を原文と抽象原則に照らして短く批評する。G01〜G06をそれぞれ一度、計6 findingsで扱い、idはF01〜F06とする。source_idsは根拠のM番号を1〜3個、draft_idsは対応するD番号を0〜3個。欠落ならdraft_idsは空配列。各findingは1〜2個のelementsを持ち、polarity/change/descriptionで原文から初稿への変化を記述する。descriptionは各60字以内、recommendationは各80字以内。原文や原則の長い再説明・引用をせず、観測と推薦だけを端的に示す。問題を捏造せず、保持すべき長所も含める。判断不能は推薦文で保留と明示する。",
     "reviser": "原文と抽象原則と批評を吟味して改稿する。採用・不採用・保留を区別し、批評を正解と決めつけない。sentencesはR01から連番のidとtextを持つ配列。各textは改行なし1000字以内、全体は900〜1400字が目安。すべてのfindingに1件ずつdecisionsを返す。dispositionはadopt/reject/hold、reasonは公開用の短い説明（500字以内）。output_idsは対応するR番号を0〜16個。adoptでは少なくとも1箇所の実際の改稿文を指し、修正予定だけを採用済みとしない。未解決ならholdを使う。",
 }
 

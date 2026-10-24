@@ -86,6 +86,8 @@ The maximum is six call attempts: two cases × three stages. Each call reserves 
 
 The plan freezes source hashes, teacher, cases, model identifiers, stages, and limits before the first call. Raw requests/responses, reservations, failed replies, usage including unknown counts, per-role views, public events, source archive, and local manifests remain inspectable. Do not overwrite a failed capture.
 
+A separately planned follow-up can explicitly fork a **sealed source/draft-only capture** with --resume-from and a matching one-case --cases file. It accepts no partial review, checks the original manifest and episode contract, preserves the original files, and records the imported predecessor separately from its at-most-two new calls. This is an explicit new experiment, not an automatic retry or a continuation that hides failed calls. Replay carries its own frozen seed database and does not need to read the original capture path.
+
 This pilot changes guidance, prior-answer exposure, output protocol, and state handling together. It tests an executable mechanism and supplies concrete outputs for inspection. It does not isolate the causal effect of abstraction, numeric components, or persistence. The second case is a new synthetic probe, not a statistically independent generalization benchmark.
 
 ## Files and checks

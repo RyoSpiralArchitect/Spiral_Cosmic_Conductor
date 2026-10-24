@@ -99,11 +99,13 @@ class CapturedFailure(Exception):
         self.error_type = error_type
 
 
-def run(out, mode="simulated", *, cases_path=DEFAULT_CASES, replay=None, transport=None):
+def run(out, mode="simulated", *, cases_path=DEFAULT_CASES, replay=None, transport=None, resume_from=None):
     if mode not in {"simulated", "live", "replay"} or (transport is not None and mode != "simulated"):
         raise ContractError("Invalid experiment mode")
     if out.exists() and (not out.is_dir() or any(out.iterdir())):
         raise ContractError("Use a new or empty output directory")
+    if mode == "replay" and replay is not None and cases_path == DEFAULT_CASES:
+        cases_path = replay / "cases.json"
     cases = read_cases(cases_path)
     source_paths = [*sorted((REPO / "conductor").glob("*.py")), REPO / "experiments/provider_pilot.py", Path(__file__).resolve()]
     source_hashes = {str(p.relative_to(REPO)): sha(p.read_bytes()) for p in source_paths}
@@ -113,7 +115,26 @@ def run(out, mode="simulated", *, cases_path=DEFAULT_CASES, replay=None, transpo
         raise ContractError("Credential-like input refused")
     if mode == "live" and any(not os.environ.get(p.key_env) for p in PROVIDERS.values()):
         raise ContractError("Missing provider credential")
-    captures = {}
+    captures, fork_info, fork_bytes = {}, None, None
+    if resume_from is not None:
+        if mode == "replay" or len(cases) != 1 or resume_from.name != cases[0]["id"]:
+            raise ContractError("Fork requires one matching case and an explicit non-replay invocation")
+        # Only fork a sealed capture, never a mutable live database or a partial
+        # response. The original source/draft event history remains unchanged.
+        origin = resume_from.parent
+        saved_summary = strict_json((origin / "summary.json").read_text())
+        if saved_summary["status"] not in {"completed", "completed_with_failures"}:
+            raise ContractError("Fork source must be a finished capture")
+        manifest = strict_json((origin / "manifest.json").read_text())
+        for name in ("memory.sqlite", "audit.json", "memo.md", "principles.json", "draft.md"):
+            file = resume_from / name
+            if sha(file.read_bytes()) != manifest["sha256"][str(file.relative_to(origin))]:
+                raise ContractError("Fork source integrity mismatch")
+        fork_bytes = (resume_from / "memory.sqlite").read_bytes()
+        fork_info = {"case": cases[0]["id"], "source_capture": str(resume_from.resolve()),
+                     "source_manifest_sha256": sha((origin / "manifest.json").read_bytes()),
+                     "seed_sha256": sha(fork_bytes), "imported_stages": ["proposer"],
+                     "original_audit": strict_json((resume_from / "audit.json").read_text())}
     if mode == "replay":
         if replay is None:
             raise ContractError("Replay capture required")
@@ -126,6 +147,11 @@ def run(out, mode="simulated", *, cases_path=DEFAULT_CASES, replay=None, transpo
             path = (replay / name).resolve()
             if not path.is_relative_to(replay.resolve()) or sha(path.read_bytes()) != expected:
                 raise ContractError("Capture integrity mismatch")
+        fork_info = recorded_plan.get("fork")
+        if fork_info is not None:
+            fork_bytes = (replay / "fork_seed.sqlite").read_bytes()
+            if len(cases) != 1 or fork_info["case"] != cases[0]["id"] or sha(fork_bytes) != fork_info["seed_sha256"]:
+                raise ContractError("Replay fork mismatch")
         for line in (replay / "exchanges.jsonl").read_text().splitlines():
             row = strict_json(line)
             key = (row["case"], row["stage"])
@@ -133,6 +159,8 @@ def run(out, mode="simulated", *, cases_path=DEFAULT_CASES, replay=None, transpo
                 raise ContractError("Duplicate captured stage")
             captures[key] = row
     out.mkdir(parents=True, exist_ok=True)
+    if fork_bytes is not None:
+        (out / "fork_seed.sqlite").write_bytes(fork_bytes)
     write_json(out / "cases.json", cases)
     (out / "teacher.json").write_text(teacher_text, encoding="utf-8")
     plan = {"mode": mode, "created_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -140,10 +168,10 @@ def run(out, mode="simulated", *, cases_path=DEFAULT_CASES, replay=None, transpo
             "teacher_sha256": sha(teacher_text.encode()),
             "repo_commit": subprocess.check_output(["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True).strip(),
             "stages": list(STAGES), "providers": {k: asdict(p) for k, p in PROVIDERS.items()},
-            "max_calls": min(MAX_CALLS, 3 * len(cases)), "max_output_tokens_per_call": MAX_TOKENS,
+            "max_calls": 2 if fork_info else min(MAX_CALLS, 3 * len(cases)), "max_output_tokens_per_call": MAX_TOKENS,
             "call_timeout_s": TIMEOUT_S, "transport_retries": 0,
             "scope": "Mechanism pilot of abstract guidance and public state together; not a causal ablation or generalization benchmark.",
-            "semantic_status": "unassessed", "weight_updates": False}
+            "semantic_status": "unassessed", "weight_updates": False, "fork": fork_info}
     write_json(out / "plan.json", plan)
     with zipfile.ZipFile(out / "source.zip", "w", zipfile.ZIP_DEFLATED) as archive:
         for path in source_paths:
@@ -155,12 +183,22 @@ def run(out, mode="simulated", *, cases_path=DEFAULT_CASES, replay=None, transpo
             case_dir = out / case["id"]
             case_dir.mkdir()
             db_path = case_dir / "memory.sqlite"
+            if fork_bytes is not None:
+                db_path.write_bytes(fork_bytes)
             with open_text_memory(db_path, case["id"]) as memory:
-                seed(memory, case["memo"])
+                if fork_info is None:
+                    seed(memory, case["memo"])
+                else:
+                    audit = memory.audit()
+                    if (audit != fork_info["original_audit"] or audit["event_count"] != 2
+                            or set(audit["slots_present"]) != {"memo", "principles", "draft"}
+                            or memory.history("controller", "memo")[-1]["text"] != case["memo"]
+                            or memory.history("controller", "principles")[-1]["text"] != teacher_text):
+                        raise ContractError("Fork must contain only the matching source, teacher, and completed draft")
             case_result = {"id": case["id"], "status": "incomplete", "completed_stages": []}
             case_results.append(case_result)
             try:
-                for stage, provider in STAGES:
+                for stage, provider in (STAGES[1:] if fork_info else STAGES):
                     # Reopen per role; do not hold a database transaction across HTTP.
                     with open_text_memory(db_path, case["id"]) as memory:
                         snapshot = view(memory, stage)
@@ -262,7 +300,8 @@ def run(out, mode="simulated", *, cases_path=DEFAULT_CASES, replay=None, transpo
                    "failed_calls": sum(r["status"] == "failed" for r in rows), "cases": case_results, "retries": 0,
                    "known_usage": {k: sum(r["usage"][k] or 0 for r in rows) for k in ("prompt_tokens", "completion_tokens")},
                    "unknown_usage_calls": sum(any(v is None for v in r["usage"].values()) for r in rows),
-                   "matched_replay_calls": matched, "semantic_status": "unassessed"}
+                   "matched_replay_calls": matched, "semantic_status": "unassessed",
+                   "imported_predecessor": fork_info}
         write_json(out / "summary.json", summary)
         write_json(out / "manifest.json", {"claim": "local_integrity_only", "sha256": {
             str(p.relative_to(out)): sha(p.read_bytes()) for p in sorted(out.rglob("*")) if p.is_file() and p != out / "manifest.json"}})
@@ -275,6 +314,7 @@ if __name__ == "__main__":
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--cases", type=Path, default=DEFAULT_CASES)
     parser.add_argument("--replay", type=Path)
+    parser.add_argument("--resume-from", type=Path, help="Explicitly fork one sealed source/draft-only case; at most two new calls")
     parser.add_argument("--credentials-from-zshrc", action="store_true")
     args = parser.parse_args()
     try:
@@ -282,7 +322,7 @@ if __name__ == "__main__":
             if args.mode != "live":
                 raise ContractError("Credential loading is live-only")
             load_zshrc_literals(Path.home() / ".zshrc")
-        result = run(args.out, args.mode, cases_path=args.cases, replay=args.replay)
+        result = run(args.out, args.mode, cases_path=args.cases, replay=args.replay, resume_from=args.resume_from)
         print(canonical(result))
         sys.exit(0 if result["status"] == "completed" else 1)
     except Exception as exc:

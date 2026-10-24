@@ -88,6 +88,41 @@ class TextMemoryPilotTests(unittest.TestCase):
             with self.assertRaises(ContractError):
                 run(root / "replay", "replay", replay=root / "sim")
 
+    def test_explicit_fork_reuses_only_completed_draft_and_records_two_new_calls(self):
+        def transport(case, stage, snapshot, payload, body, timeout):
+            if stage == "critic":
+                raise TimeoutError()
+            return simulated(stage, snapshot)
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
+            root = Path(tmp)
+            run(root / "original", transport=transport)
+            source = root / "original/tool_shelf"
+            original_bytes = (source / "memory.sqlite").read_bytes()
+            cases = json.loads(DEFAULT_CASES.read_text())
+            subset = root / "subset.json"
+            subset.write_text(json.dumps([c for c in cases if c["id"] == "tool_shelf"]))
+            fork = run(root / "fork", cases_path=subset, resume_from=source)
+            self.assertEqual(fork["calls"], 2)
+            self.assertEqual(fork["cases"][0]["completed_stages"], ["critic", "reviser"])
+            self.assertEqual(fork["cases"][0]["audit"]["event_count"], 4)
+            self.assertEqual((source / "memory.sqlite").read_bytes(), original_bytes)
+            replay = run(root / "fork-replay", "replay", replay=root / "fork")
+            self.assertEqual(len(replay["matched_replay_calls"]), 2)
+            self.assertEqual(fork["cases"][0]["audit"], replay["cases"][0]["audit"])
+
+    def test_fork_cannot_import_a_different_memo(self):
+        def transport(case, stage, snapshot, payload, body, timeout):
+            if stage == "critic":
+                raise TimeoutError()
+            return simulated(stage, snapshot)
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
+            root = Path(tmp)
+            run(root / "original", transport=transport)
+            subset = root / "subset.json"
+            subset.write_text(json.dumps([{"id": "tool_shelf", "memo": "different memo"}]))
+            with self.assertRaises(ContractError):
+                run(root / "fork", cases_path=subset, resume_from=root / "original/tool_shelf")
+
 
 if __name__ == "__main__":
     unittest.main()
