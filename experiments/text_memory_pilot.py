@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import zipfile
@@ -60,6 +61,30 @@ def read_cases(path):
             raise ContractError("Invalid case")
         seen.add(case["id"])
     return cases
+
+
+def validate_checkpoint(memory, case, teacher_text, expected_audit):
+    """Rebuild the imported workflow state; metadata alone cannot validate it."""
+    audit = memory.audit()
+    completed = 1 if set(audit["slots_present"]) == {"memo", "principles", "draft"} else 2
+    if (audit != expected_audit or audit["event_count"] != completed + 1
+            or set(audit["slots_present"]) != ({"memo", "principles", "draft"} | ({"review"} if completed == 2 else set()))
+            or memory.history("controller", "memo")[-1]["text"] != case["memo"]
+            or memory.history("controller", "principles")[-1]["text"] != teacher_text):
+        raise ContractError("Fork requires a matching completed draft or review checkpoint")
+    with tempfile.TemporaryDirectory() as tmp:
+        with open_text_memory(Path(tmp) / "validation.sqlite", case["id"]) as rebuilt:
+            seed(rebuilt, case["memo"])
+            accept(rebuilt, "proposer", canonical({"text": memory.history("controller", "draft")[-1]["text"]}), expected_revision=1)
+            if completed == 2:
+                saved = strict_json(memory.history("controller", "review")[-1]["text"])
+                fields = {"id", "principle_id", "source_ids", "draft_ids", "elements", "recommendation"}
+                response = {"findings": [{k: f[k] for k in fields} for f in saved["findings"]]}
+                normalized = accept(rebuilt, "critic", canonical(response), expected_revision=2)[0]["text"]
+                if normalized != canonical(saved):
+                    raise ContractError("Imported review projection mismatch")
+            if rebuilt.audit() != audit:
+                raise ContractError("Imported workflow history mismatch")
 
 
 def envelope(stage, provider, snapshot):
@@ -131,10 +156,11 @@ def run(out, mode="simulated", *, cases_path=DEFAULT_CASES, replay=None, transpo
             if sha(file.read_bytes()) != manifest["sha256"][str(file.relative_to(origin))]:
                 raise ContractError("Fork source integrity mismatch")
         fork_bytes = (resume_from / "memory.sqlite").read_bytes()
+        origin_audit = strict_json((resume_from / "audit.json").read_text())
+        imported = ["proposer", "critic"] if "review" in origin_audit["slots_present"] else ["proposer"]
         fork_info = {"case": cases[0]["id"], "source_capture": str(resume_from.resolve()),
                      "source_manifest_sha256": sha((origin / "manifest.json").read_bytes()),
-                     "seed_sha256": sha(fork_bytes), "imported_stages": ["proposer"],
-                     "original_audit": strict_json((resume_from / "audit.json").read_text())}
+                     "seed_sha256": sha(fork_bytes), "imported_stages": imported, "original_audit": origin_audit}
     if mode == "replay":
         if replay is None:
             raise ContractError("Replay capture required")
@@ -168,7 +194,7 @@ def run(out, mode="simulated", *, cases_path=DEFAULT_CASES, replay=None, transpo
             "teacher_sha256": sha(teacher_text.encode()),
             "repo_commit": subprocess.check_output(["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True).strip(),
             "stages": list(STAGES), "providers": {k: asdict(p) for k, p in PROVIDERS.items()},
-            "max_calls": 2 if fork_info else min(MAX_CALLS, 3 * len(cases)), "max_output_tokens_per_call": MAX_TOKENS,
+            "max_calls": 3 - len(fork_info["imported_stages"]) if fork_info else min(MAX_CALLS, 3 * len(cases)), "max_output_tokens_per_call": MAX_TOKENS,
             "call_timeout_s": TIMEOUT_S, "transport_retries": 0,
             "scope": "Mechanism pilot of abstract guidance and public state together; not a causal ablation or generalization benchmark.",
             "semantic_status": "unassessed", "weight_updates": False, "fork": fork_info}
@@ -189,16 +215,14 @@ def run(out, mode="simulated", *, cases_path=DEFAULT_CASES, replay=None, transpo
                 if fork_info is None:
                     seed(memory, case["memo"])
                 else:
-                    audit = memory.audit()
-                    if (audit != fork_info["original_audit"] or audit["event_count"] != 2
-                            or set(audit["slots_present"]) != {"memo", "principles", "draft"}
-                            or memory.history("controller", "memo")[-1]["text"] != case["memo"]
-                            or memory.history("controller", "principles")[-1]["text"] != teacher_text):
-                        raise ContractError("Fork must contain only the matching source, teacher, and completed draft")
+                    validate_checkpoint(memory, case, teacher_text, fork_info["original_audit"])
+                    expected_imported = ["proposer", "critic"] if "review" in memory.audit()["slots_present"] else ["proposer"]
+                    if fork_info["imported_stages"] != expected_imported:
+                        raise ContractError("Imported stage accounting mismatch")
             case_result = {"id": case["id"], "status": "incomplete", "completed_stages": []}
             case_results.append(case_result)
             try:
-                for stage, provider in (STAGES[1:] if fork_info else STAGES):
+                for stage, provider in (STAGES[len(fork_info["imported_stages"]):] if fork_info else STAGES):
                     # Reopen per role; do not hold a database transaction across HTTP.
                     with open_text_memory(db_path, case["id"]) as memory:
                         snapshot = view(memory, stage)
@@ -314,7 +338,7 @@ if __name__ == "__main__":
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--cases", type=Path, default=DEFAULT_CASES)
     parser.add_argument("--replay", type=Path)
-    parser.add_argument("--resume-from", type=Path, help="Explicitly fork one sealed source/draft-only case; at most two new calls")
+    parser.add_argument("--resume-from", type=Path, help="Explicitly fork one sealed draft/review checkpoint; at most two new calls")
     parser.add_argument("--credentials-from-zshrc", action="store_true")
     args = parser.parse_args()
     try:

@@ -119,15 +119,19 @@ def _ids(value: Any, allowed: set[str], *, minimum: int = 0, maximum: int = 8) -
 
 def _spans(artifact: dict, rows: list[dict], ids: list[str]) -> list[dict]:
     by_id = {row["id"]: row for row in rows}
-    return [{"artifact": artifact["ref"], "sentence_id": sid, "start": by_id[sid]["start"],
-             "end": by_id[sid]["end"], "quote_sha256": text_hash(by_id[sid]["text"]),
-             "preview": by_id[sid]["text"][:120]} for sid in ids]
+    return [{"artifact_id": artifact["ref"]["id"], "sentence_id": sid, "start": by_id[sid]["start"],
+             "end": by_id[sid]["end"], "quote_sha256": text_hash(by_id[sid]["text"])} for sid in ids]
 
 
-def resolve_span(memory: SharedMemory, reader: str, span: dict) -> str:
+def resolve_span(memory: SharedMemory, reader: str, span: dict, references: dict) -> str:
     """Resolve a scoped historical span without duplicating full text in memory."""
-    exact_keys(span, {"artifact", "sentence_id", "start", "end", "quote_sha256", "preview"})
-    ref = ArtifactRef.from_dict(span["artifact"])
+    exact_keys(span, {"artifact_id", "sentence_id", "start", "end", "quote_sha256"})
+    artifact_id = check_id(span["artifact_id"])
+    if artifact_id not in references:
+        raise ContractError("Unknown span reference table entry")
+    ref = ArtifactRef.from_dict(references[artifact_id])
+    if ref.id != artifact_id:
+        raise ContractError("Span reference slot mismatch")
     check_id(span["sentence_id"])
     if ref.episode != memory.episode:
         raise ContractError("Cross-episode span")
@@ -139,7 +143,7 @@ def resolve_span(memory: SharedMemory, reader: str, span: dict) -> str:
     if type(start) is not int or type(end) is not int or not 0 <= start < end <= len(text):
         raise ContractError("Invalid span offsets")
     quote = text[start:end]
-    if text_hash(quote) != span["quote_sha256"] or quote[:120] != span["preview"]:
+    if text_hash(quote) != span["quote_sha256"]:
         raise ContractError("Span text integrity mismatch")
     return quote
 
@@ -188,6 +192,7 @@ def accept(memory: SharedMemory, stage: str, content: str, *, expected_revision:
                                "draft_spans": _spans(docs["draft"], draft, draft_ids)})
         review = {"schema": "public_review.v1", "component_order": COMPONENTS,
                   "reference": docs["memo"]["ref"], "target": docs["draft"]["ref"], "guidance": docs["principles"]["ref"],
+                  "references": {name: docs[name]["ref"] for name in ("memo", "draft")},
                   "findings": normalized, "semantic_status": "unassessed"}
         pending = [Publication("review", canonical(review), parents)]
     else:
@@ -226,10 +231,10 @@ def accept(memory: SharedMemory, stage: str, content: str, *, expected_revision:
                               minimum=1 if decision["disposition"] == "adopt" else 0, maximum=16)
             finding = findings[fid]
             trace_rows.append({**decision, "principle_id": finding["principle_id"],
-                               "source_spans": finding["source_spans"], "draft_spans": finding["draft_spans"],
-                               "output_spans": _spans(revision_artifact, output_rows, output_ids),
                                "structural_status": "linked", "effect_status": "unassessed"})
         trace = {"schema": "revision_trace.v1", "review": docs["review"]["ref"], "revision": revision_ref.to_dict(),
+                 "references": {"revision": revision_ref.to_dict()},
+                 "output_spans": {s["sentence_id"]: s for s in _spans(revision_artifact, output_rows, [r["id"] for r in output_rows])},
                  "decisions": trace_rows, "held_finding_ids": [r["finding_id"] for r in trace_rows if r["disposition"] == "hold"],
                  "claim": "Dispositions and exact spans only; adopted does not mean semantically corrected."}
         pending = [Publication("revision", revision_text, parents),

@@ -123,6 +123,23 @@ class TextMemoryPilotTests(unittest.TestCase):
             with self.assertRaises(ContractError):
                 run(root / "fork", cases_path=subset, resume_from=root / "original/tool_shelf")
 
+    def test_sealed_review_checkpoint_needs_only_one_new_call(self):
+        def transport(case, stage, snapshot, payload, body, timeout):
+            if stage == "reviser":
+                raise TimeoutError()
+            return simulated(stage, snapshot)
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
+            root = Path(tmp)
+            run(root / "original", transport=transport)
+            subset = root / "subset.json"
+            subset.write_text(json.dumps([c for c in json.loads(DEFAULT_CASES.read_text()) if c["id"] == "tool_shelf"]))
+            result = run(root / "fork", cases_path=subset, resume_from=root / "original/tool_shelf")
+            self.assertEqual(result["calls"], 1)
+            self.assertEqual(result["cases"][0]["completed_stages"], ["reviser"])
+            self.assertEqual(result["imported_predecessor"]["imported_stages"], ["proposer", "critic"])
+            replay = run(root / "replay", "replay", replay=root / "fork")
+            self.assertEqual(replay["cases"][0]["audit"], result["cases"][0]["audit"])
+
 
 if __name__ == "__main__":
     unittest.main()

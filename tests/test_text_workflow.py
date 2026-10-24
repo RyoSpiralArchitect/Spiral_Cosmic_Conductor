@@ -40,7 +40,7 @@ class TextWorkflowTests(unittest.TestCase):
         return accept(self.memory, "critic", canonical(review_fixture()), expected_revision=2)
 
     def test_full_handoff_reopen_trace_and_exact_source_output_spans(self):
-        self.review()
+        review = strict_json(self.review()[0]["text"])
         # Reopen between roles: persistence actually supplies the next handoff.
         with open_text_memory(self.path, "episode") as reviser:
             packet = model_input(view(reviser, "reviser"))
@@ -49,12 +49,18 @@ class TextWorkflowTests(unittest.TestCase):
         trace = strict_json(publications[1]["text"])
         self.assertEqual(trace["held_finding_ids"], ["F06"])
         self.assertEqual(len(trace["decisions"]), 6)
+        self.assertEqual(trace["review"], self.memory.history("controller", "review")[-1]["ref"])
+        findings = {f["id"]: f for f in review["findings"]}
+        references = {**review["references"], **trace["references"]}
         for d in trace["decisions"]:
             self.assertEqual(d["effect_status"], "unassessed")
-            for span in d["source_spans"] + d["draft_spans"] + d["output_spans"]:
-                artifact = self.memory.history("controller", span["artifact"]["id"])[span["artifact"]["version"] - 1]
-                self.assertEqual(artifact["text"][span["start"]:span["end"]], resolve_span(self.memory, "controller", span))
-                self.assertEqual(artifact["ref"], span["artifact"])
+            finding = findings[d["finding_id"]]
+            spans = finding["source_spans"] + finding["draft_spans"] + [trace["output_spans"][sid] for sid in d["output_ids"]]
+            for span in spans:
+                ref = references[span["artifact_id"]]
+                artifact = self.memory.history("controller", ref["id"])[ref["version"] - 1]
+                self.assertEqual(artifact["text"][span["start"]:span["end"]], resolve_span(self.memory, "controller", span, references))
+                self.assertEqual(artifact["ref"], ref)
         self.assertEqual(self.memory.audit()["event_count"], 4)
 
     def test_vectors_are_derived_from_elements_not_model_authority(self):
@@ -133,14 +139,16 @@ class TextWorkflowTests(unittest.TestCase):
         accept(self.memory, "proposer", canonical({"text": long_text}), expected_revision=2)
         result = accept(self.memory, "critic", canonical(review_fixture()), expected_revision=3)
         self.assertLess(len(result[0]["text"]), 12_000)
-        span = strict_json(result[0]["text"])["findings"][0]["draft_spans"][0]
-        self.assertEqual(resolve_span(self.memory, "reviser", span), long_text)
-        self.assertLessEqual(len(span["preview"]), 120)
+        review = strict_json(result[0]["text"])
+        span = review["findings"][0]["draft_spans"][0]
+        self.assertEqual(resolve_span(self.memory, "reviser", span, review["references"]), long_text)
+        self.assertNotIn("preview", span)
+        self.assertNotIn("artifact", span)
         with self.assertRaises(ContractError):
-            resolve_span(self.memory, "unregistered_reader", span)
+            resolve_span(self.memory, "unregistered_reader", span, review["references"])
         span["end"] -= 1
         with self.assertRaises(ContractError):
-            resolve_span(self.memory, "controller", span)
+            resolve_span(self.memory, "controller", span, review["references"])
 
     def test_draft_bullet_lines_have_separate_exact_units(self):
         text = "# 見出し\n- 最初の手順\n- 次の手順\n"
@@ -176,6 +184,34 @@ class TextWorkflowTests(unittest.TestCase):
                 accept(memory, "critic", fixture["review_content"], expected_revision=2)
             self.assertEqual(memory.history("critic", "review"), [])
             self.assertEqual(memory.audit()["event_count"], 2)
+
+    def test_captured_bounded_dense_review_fits_without_dropping_references(self):
+        fixture = strict_json((Path(__file__).parent / "fixtures/text_memory_reference_overflow_2026-10-25.json").read_text())
+        with open_text_memory(Path(self.tmp.name) / "dense.sqlite", fixture["episode"]) as memory:
+            seed(memory, fixture["memo"])
+            accept(memory, "proposer", fixture["proposal_content"], expected_revision=1)
+            result = accept(memory, "critic", fixture["bounded_review_content"], expected_revision=2)
+            review = strict_json(result[0]["text"])
+            self.assertLess(len(result[0]["text"]), memory.limits.max_artifact_chars)
+            original = strict_json(fixture["bounded_review_content"])
+            for original_row, stored in zip(original["findings"], review["findings"]):
+                self.assertEqual({k: stored[k] for k in original_row}, original_row)
+                for span in stored["source_spans"] + stored["draft_spans"]:
+                    self.assertTrue(resolve_span(memory, "reviser", span, review["references"]))
+            self.assertLess(len(canonical(model_input(view(memory, "reviser"))).encode()), 128_000)
+            # Every finding can cite the maximum output count without copying
+            # either the source/draft spans or each output span six times.
+            response = revision_fixture()
+            response["sentences"] = [{"id": f"R{i:02d}", "text": f"改稿の単位{i}。"} for i in range(1, 17)]
+            for decision in response["decisions"]:
+                decision.update(disposition="adopt", output_ids=[s["id"] for s in response["sentences"]])
+            trace_artifact = accept(memory, "reviser", canonical(response), expected_revision=3)[1]
+            trace = strict_json(trace_artifact["text"])
+            self.assertLess(len(trace_artifact["text"]), memory.limits.max_artifact_chars)
+            self.assertEqual(len(trace["output_spans"]), 16)
+            self.assertEqual([d["output_ids"] for d in trace["decisions"]], [d["output_ids"] for d in response["decisions"]])
+            for sid, span in trace["output_spans"].items():
+                self.assertEqual(resolve_span(memory, "reviser", span, trace["references"]), response["sentences"][int(sid[1:]) - 1]["text"])
 
 
 if __name__ == "__main__":
