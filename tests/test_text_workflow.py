@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 from conductor.shared_memory import Publication
-from conductor.text_workflow import (abstract_teacher, accept, model_input, open_text_memory,
+from conductor.text_workflow import (abstract_teacher, accept, model_input, open_text_memory, resolve_span,
                                      seed, segments, view)
 from conductor.types import ContractError, canonical, strict_json
 
@@ -53,7 +53,7 @@ class TextWorkflowTests(unittest.TestCase):
             self.assertEqual(d["effect_status"], "unassessed")
             for span in d["source_spans"] + d["draft_spans"] + d["output_spans"]:
                 artifact = self.memory.history("controller", span["artifact"]["id"])[span["artifact"]["version"] - 1]
-                self.assertEqual(artifact["text"][span["start"]:span["end"]], span["quote"])
+                self.assertEqual(artifact["text"][span["start"]:span["end"]], resolve_span(self.memory, "controller", span))
                 self.assertEqual(artifact["ref"], span["artifact"])
         self.assertEqual(self.memory.audit()["event_count"], 4)
 
@@ -125,6 +125,28 @@ class TextWorkflowTests(unittest.TestCase):
         self.assertEqual(len(rows), 2)
         for row in rows:
             self.assertEqual(source[row["start"]:row["end"]], row["text"])
+
+    def test_long_referenced_text_is_stored_once_and_resolved_under_reader_scope(self):
+        # Start a new draft version containing one long unit. Six findings
+        # referring to it must not multiply the full text in the review.
+        long_text = "長い提案" * 1500
+        accept(self.memory, "proposer", canonical({"text": long_text}), expected_revision=2)
+        result = accept(self.memory, "critic", canonical(review_fixture()), expected_revision=3)
+        self.assertLess(len(result[0]["text"]), 12_000)
+        span = strict_json(result[0]["text"])["findings"][0]["draft_spans"][0]
+        self.assertEqual(resolve_span(self.memory, "reviser", span), long_text)
+        self.assertLessEqual(len(span["preview"]), 120)
+        with self.assertRaises(ContractError):
+            resolve_span(self.memory, "unregistered_reader", span)
+        span["end"] -= 1
+        with self.assertRaises(ContractError):
+            resolve_span(self.memory, "controller", span)
+
+    def test_draft_bullet_lines_have_separate_exact_units(self):
+        text = "# 見出し\n- 最初の手順\n- 次の手順\n"
+        rows = segments(text, "D")
+        self.assertEqual(len(rows), 3)
+        self.assertEqual([text[r["start"]:r["end"]] for r in rows], ["# 見出し", "- 最初の手順", "- 次の手順"])
 
 
 if __name__ == "__main__":

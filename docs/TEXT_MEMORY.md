@@ -44,7 +44,7 @@ The single controller is trusted to select the episode, role, and allowed artifa
 
 ## Observable revision decisions
 
-The proposer returns text. The host assigns punctuation-based source/draft segment IDs with exact Unicode codepoint offsets. This is a transparent segmentation rule, not a linguistic sentence parser.
+The proposer returns text. The host assigns punctuation-based source segment IDs with exact Unicode codepoint offsets. Drafts also split at line boundaries so a bullet list does not become one enormous citation. This is a transparent segmentation rule, not a linguistic sentence parser.
 
 The critic returns six findings, one per abstract principle, each carrying:
 
@@ -54,7 +54,7 @@ The critic returns six findings, one per abstract principle, each carrying:
 
 The reviser returns named output units R01, R02, … and one disposition for **every** finding: adopt, reject, or hold, with a short public rationale. Each adopted finding must reference at least one actual output unit. Unknown IDs, duplicate dispositions, missing findings, and invented authority fields fail closed.
 
-The host joins output units with newlines and binds source, draft, and output spans to their exact artifact versions and hashes. Raw provider responses are preserved separately. A revision unit may be a paragraph; its ID is not proof that it is exactly one linguistic sentence.
+The host joins output units with newlines and binds source, draft, and output spans to their exact artifact versions and hashes. Spans store offsets, a quote hash, and at most 120 preview characters; full quotations are resolved from scoped historical artifacts, avoiding repeated copies of long text. Raw provider responses are preserved separately. A revision unit may be a paragraph; its ID is not proof that it is exactly one linguistic sentence.
 
 Every decision has structural_status=linked and effect_status=unassessed. A model may point to a real sentence while misrepresenting its meaning. adopt is therefore the model's declared disposition, not automatic issue resolution. Holds remain explicit in held_finding_ids; rejected findings retain their reasons.
 

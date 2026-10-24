@@ -69,9 +69,10 @@ def seed(memory: SharedMemory, memo: str) -> None:
 
 
 def segments(text: str, prefix: str) -> list[dict[str, Any]]:
-    """Punctuation-based segments with exact codepoint offsets, not an NLP parser."""
+    """Source: punctuation. Draft: punctuation or line boundary for bullet lists."""
     rows = []
-    for match in re.finditer(r"[^。！？]+(?:[。！？]|$)", text):
+    pattern = r"[^。！？\n]+(?:[。！？]|\n|$)" if prefix == "D" else r"[^。！？]+(?:[。！？]|$)"
+    for match in re.finditer(pattern, text):
         chunk, trimmed = match.group(), match.group().strip()
         if trimmed:
             start = match.start() + len(chunk) - len(chunk.lstrip())
@@ -119,7 +120,28 @@ def _ids(value: Any, allowed: set[str], *, minimum: int = 0, maximum: int = 8) -
 def _spans(artifact: dict, rows: list[dict], ids: list[str]) -> list[dict]:
     by_id = {row["id"]: row for row in rows}
     return [{"artifact": artifact["ref"], "sentence_id": sid, "start": by_id[sid]["start"],
-             "end": by_id[sid]["end"], "quote": by_id[sid]["text"]} for sid in ids]
+             "end": by_id[sid]["end"], "quote_sha256": text_hash(by_id[sid]["text"]),
+             "preview": by_id[sid]["text"][:120]} for sid in ids]
+
+
+def resolve_span(memory: SharedMemory, reader: str, span: dict) -> str:
+    """Resolve a scoped historical span without duplicating full text in memory."""
+    exact_keys(span, {"artifact", "sentence_id", "start", "end", "quote_sha256", "preview"})
+    ref = ArtifactRef.from_dict(span["artifact"])
+    check_id(span["sentence_id"])
+    if ref.episode != memory.episode:
+        raise ContractError("Cross-episode span")
+    versions = memory.history(reader, ref.id)
+    if not 1 <= ref.version <= len(versions) or versions[ref.version - 1]["ref"] != ref.to_dict():
+        raise ContractError("Unknown span artifact")
+    text = versions[ref.version - 1]["text"]
+    start, end = span["start"], span["end"]
+    if type(start) is not int or type(end) is not int or not 0 <= start < end <= len(text):
+        raise ContractError("Invalid span offsets")
+    quote = text[start:end]
+    if text_hash(quote) != span["quote_sha256"] or quote[:120] != span["preview"]:
+        raise ContractError("Span text integrity mismatch")
+    return quote
 
 
 def accept(memory: SharedMemory, stage: str, content: str, *, expected_revision: int) -> list[dict]:
