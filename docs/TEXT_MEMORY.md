@@ -56,6 +56,8 @@ The reviser returns named output units R01, R02, … and one disposition for **e
 
 The API JSON Schema includes collection bounds and the source/draft/finding IDs allowed by that particular snapshot. Host validation still rechecks them. A captured response with nineteen draft references in one finding remains a rejection fixture; the implementation does not silently trim it to fit the eight-reference limit.
 
+Revision IDs and output references use only the R01–R32 namespace in the wire schema. The host additionally checks sequential IDs and requires every reference to name an actually returned unit. Request serialization preserves schema property order so revision sentences precede their decisions. Sorting the schema keys would place decisions first; OpenAI documents that Structured Outputs follow schema key order ([official guide](https://developers.openai.com/api/docs/guides/structured-outputs#key-ordering)). This ordering repair has offline coverage; its effect on live generation is unmeasured.
+
 The host joins output units with newlines and binds source, draft, and output spans to their exact artifact versions and hashes. Each review or trace has a reference table containing the full artifact references once. Spans store an artifact ID, offsets, and a quote hash; full quotations are resolved from scoped historical artifacts, avoiding repeated copies of text and reference metadata. Raw provider responses are preserved separately. A revision unit may be a paragraph; its ID is not proof that it is exactly one linguistic sentence.
 
 Trace decisions link to source/draft spans through their finding ID and the immutable review reference. A shared output-span table stores each revision unit once, even if all six decisions cite it. The full chain is trace → review finding → source/draft spans, and trace decision → output IDs → revision spans.
@@ -102,3 +104,9 @@ This pilot changes guidance, prior-answer exposure, output protocol, and state h
 - tests/test_shared_memory.py, tests/test_text_workflow.py, tests/test_text_memory_pilot.py: stale/concurrent writes, scope and episode separation, atomicity, reference validity, interruption receipts, and failure replay.
 
 API responses remain candidates. The deterministic claim ledger and its verification semantics are unchanged.
+
+## Initial live observation, 2026-10-25
+
+Seven separately accounted API attempts produced two drafts and one complete review that was admitted after a local storage-format repair. An OpenAI revision returned eleven output units but all six adoption decisions cited draft IDs (Dxx), not the generated revision IDs (Rxx). The host rejected the whole revision/trace transaction. Raw response fixtures preserve both the critic reference overflow and this output-namespace error.
+
+The revised wire schema/order guards and the complete persistence/trace path pass offline tests and simulation. A fully committed live proposal → critique → revision trace is **not yet demonstrated**. The failed response also repeated a critic's positive assessment of optional introductions and surveys as source retention, although those activities were draft additions. Shared provenance made this inspectable; it did not establish semantic correctness or show that abstract guidance improved quality.

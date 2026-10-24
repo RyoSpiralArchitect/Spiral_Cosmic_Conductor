@@ -213,6 +213,24 @@ class TextWorkflowTests(unittest.TestCase):
             for sid, span in trace["output_spans"].items():
                 self.assertEqual(resolve_span(memory, "reviser", span, trace["references"]), response["sentences"][int(sid[1:]) - 1]["text"])
 
+    def test_captured_reviser_cannot_pass_draft_ids_as_output_evidence(self):
+        fixture = strict_json((Path(__file__).parent / "fixtures/text_memory_reference_overflow_2026-10-25.json").read_text())
+        with open_text_memory(Path(self.tmp.name) / "wrong-namespace.sqlite", fixture["episode"]) as memory:
+            seed(memory, fixture["memo"])
+            accept(memory, "proposer", fixture["proposal_content"], expected_revision=1)
+            accept(memory, "critic", fixture["bounded_review_content"], expected_revision=2)
+            response = strict_json(fixture["revision_wrong_namespace_content"])
+            refs = [sid for d in response["decisions"] for sid in d["output_ids"]]
+            self.assertTrue(all(sid.startswith("D") for sid in refs))
+            schema = response_schema("reviser", view(memory, "reviser"))["properties"]
+            allowed = schema["decisions"]["items"]["properties"]["output_ids"]["items"]["enum"]
+            self.assertFalse(set(refs) & set(allowed))
+            with self.assertRaisesRegex(ContractError, "sentence references"):
+                accept(memory, "reviser", fixture["revision_wrong_namespace_content"], expected_revision=3)
+            self.assertEqual(memory.audit()["event_count"], 3)
+            self.assertEqual(memory.history("reviser", "revision"), [])
+            self.assertEqual(memory.history("reviser", "trace"), [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -101,6 +101,13 @@ def envelope(stage, provider, snapshot):
     return payload
 
 
+def wire_body(payload):
+    # Structured output follows schema property order. Sorting keys would make
+    # the reviser emit decisions before the sentences they are meant to cite.
+    # Ledger hashes still use canonical(); transport hashes cover exact bytes.
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode()
+
+
 def simulated(stage, snapshot):
     """Deliberately trivial mechanism-only replies, never scored as generations."""
     if stage == "proposer":
@@ -227,7 +234,7 @@ def run(out, mode="simulated", *, cases_path=DEFAULT_CASES, replay=None, transpo
                     with open_text_memory(db_path, case["id"]) as memory:
                         snapshot = view(memory, stage)
                     payload = envelope(stage, provider, snapshot)
-                    body = canonical(payload).encode()
+                    body = wire_body(payload)
                     if len(body) > 128_000 or any(key in body for key in secrets):
                         raise ContractError("Request storage/size guard")
                     worker = ProviderWorker(provider, "fast", "live", budget, lambda _: None) if mode == "live" else None

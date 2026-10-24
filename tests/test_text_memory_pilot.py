@@ -140,6 +140,21 @@ class TextMemoryPilotTests(unittest.TestCase):
             replay = run(root / "replay", "replay", replay=root / "fork")
             self.assertEqual(replay["cases"][0]["audit"], result["cases"][0]["audit"])
 
+    def test_reviser_wire_schema_places_output_before_dispositions(self):
+        seen = []
+        def transport(case, stage, snapshot, payload, body, timeout):
+            if stage == "reviser":
+                props = json.loads(body)["response_format"]["json_schema"]["schema"]["properties"]
+                self.assertEqual(list(props), ["sentences", "decisions"])
+                ids = props["decisions"]["items"]["properties"]["output_ids"]["items"]["enum"]
+                self.assertEqual(ids, [f"R{i:02d}" for i in range(1, 33)])
+                seen.append(case["id"])
+            return simulated(stage, snapshot)
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
+            result = run(Path(tmp) / "sim", transport=transport)
+            self.assertEqual(result["status"], "completed")
+            self.assertEqual(len(seen), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

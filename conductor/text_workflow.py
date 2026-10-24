@@ -267,12 +267,13 @@ def response_schema(stage: str, snapshot: dict | None = None) -> dict:
                            "elements": {"type": "array", "items": element, "minItems": 1, "maxItems": 4}, "recommendation": string})
         return _object({"findings": {"type": "array", "items": finding, "minItems": len(principles), "maxItems": len(principles)}})
     if stage == "reviser":
-        sentence = _object({"id": string, "text": string})
+        output_ids = [f"R{i:02d}" for i in range(1, 33)]
+        sentence = _object({"id": {"type": "string", "enum": output_ids}, "text": string})
         finding_ids = ([f["id"] for f in strict_json(documents(snapshot)["review"]["text"])["findings"]]
                        if snapshot else None)
         finding_schema = {"type": "string", **({"enum": finding_ids} if finding_ids is not None else {})}
         decision = _object({"finding_id": finding_schema, "disposition": {"type": "string", "enum": ["adopt", "reject", "hold"]},
-                            "reason": string, "output_ids": ids(0, 16)})
+                            "reason": string, "output_ids": ids(0, 16, output_ids)})
         count = len(finding_ids) if finding_ids is not None else len(abstract_teacher()["principles"])
         return _object({"sentences": {"type": "array", "items": sentence, "minItems": 1, "maxItems": 32},
                         "decisions": {"type": "array", "items": decision, "minItems": count, "maxItems": count}})
