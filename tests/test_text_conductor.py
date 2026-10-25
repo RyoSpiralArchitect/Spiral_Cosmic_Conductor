@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from conductor.shared_memory import Publication
-from conductor.source_alignment import SourcePolicy, assess, candidate_units, schema, source_units
+from conductor.source_alignment import SourcePolicy, assess, candidate_units, repair, schema, source_units
 from conductor.text_conductor import TextConductor
 from conductor.types import ContractError, canonical, strict_json
 
@@ -254,6 +254,15 @@ class TextConductorTests(unittest.TestCase):
         self.assertEqual(props["sources"]["minItems"], 4)
         self.assertEqual(props["sources"]["items"]["properties"]["id"]["enum"], ["M01", "M02", "M03", "M04"])
         self.assertEqual(list(schema("repairer", MEMO, DRAFT, ["M02"])["properties"]), ["units", "resolutions"])
+
+    def test_candidate_spans_preserve_whitespace_without_relaxing_new_repair_rules(self):
+        text = "\r\n  原条件。\t\r\n \t\n補足\u2028も同じ単位。 \r末尾。"
+        units = candidate_units(text)
+        self.assertEqual([u["text"] for u in units], ["  原条件。\t", "補足\u2028も同じ単位。 ", "末尾。"])
+        for unit in units:
+            self.assertEqual(text[unit["start"]:unit["end"]], unit["text"])
+        with self.assertRaisesRegex(ContractError, "boundary whitespace"):
+            repair({"units": [{"id": "C01", "text": "  原条件。 "}], "resolutions": []}, [])
 
 
 if __name__ == "__main__":

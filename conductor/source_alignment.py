@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import math
+import re
 
 from .text_workflow import segments
 from .types import ContractError, exact_keys
@@ -53,16 +54,14 @@ def source_units(text: str) -> list[dict]:
 
 
 def candidate_units(text: str) -> list[dict]:
-    """One nonempty line per unit, preserving exact offsets into the artifact."""
+    """CR/LF-delimited units, preserving exact text and offsets like revisions."""
     if not isinstance(text, str):
         raise ContractError("Candidate must be text")
-    rows, offset = [], 0
-    for line in text.splitlines(keepends=True):
-        value = line.strip()
-        if value:
-            start = offset + len(line) - len(line.lstrip())
-            rows.append({"id": f"C{len(rows) + 1:02d}", "start": start, "end": start + len(value), "text": value})
-        offset += len(line)
+    rows = []
+    for match in re.finditer(r"[^\r\n]+", text):
+        value = match.group()
+        if value.strip():
+            rows.append({"id": f"C{len(rows) + 1:02d}", "start": match.start(), "end": match.end(), "text": value})
     if not 1 <= len(rows) <= MAX_UNITS or any(len(s["text"]) > 1000 for s in rows):
         raise ContractError("Candidate needs 1..32 bounded line units")
     return rows
@@ -134,9 +133,9 @@ def repair(response: dict, blocker_ids: list[str]) -> tuple[str, list[dict]]:
         bounded_text(unit["text"], 1000)
         if any(c in unit["text"] for c in "\r\n"):
             raise ContractError("Repair units cannot contain line breaks")
+        if unit["text"] != unit["text"].strip():
+            raise ContractError("Repair units cannot have boundary whitespace")
     text = "\n".join(u["text"] for u in units)
-    if [u["text"] for u in candidate_units(text)] != [u["text"] for u in units]:
-        raise ContractError("Repair units cannot have boundary whitespace")
     _cover(response["resolutions"], set(blocker_ids), {"action", "candidate_ids"})
     for row in response["resolutions"]:
         if row["action"] not in ("addressed", "held", "disputed"):

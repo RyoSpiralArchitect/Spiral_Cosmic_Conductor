@@ -148,9 +148,9 @@ class SourceAlignmentPilotTests(unittest.TestCase):
             self.assertFalse((root / "short/request_1.request.json").exists())
             self.assertEqual(report, run(root / "replay", "replay", replay=root / "short"))
 
-    def test_imports_linked_text_memory_without_copying_critique_to_auditor(self):
+    def test_import_preserves_exact_revision_units_and_excludes_critique(self):
         memo = "氏名は収集しない。"
-        revision = "氏名を集めずに行う。"
+        revision = " \t氏名を集めずに行う。\u2028匿名で参加。\t "
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             with open_text_memory(root / "previous.sqlite", "previous") as previous:
@@ -168,6 +168,8 @@ class SourceAlignmentPilotTests(unittest.TestCase):
                     request = conductor.request()
                     self.assertNotIn("CRITIQUE_CANARY", canonical(request.payload))
                     self.assertEqual(request.payload["input"]["source"]["units"][0]["text"], memo)
+                    self.assertEqual(request.payload["input"]["candidate"]["units"],
+                                     [{"id": "C01", "start": 0, "end": len(revision), "text": revision}])
                     origin = json.loads(conductor.memory.history("controller", "origin")[0]["text"])
                     self.assertEqual(origin["upstream_event_head"], original_audit["event_head_sha256"])
                 self.assertEqual(previous.audit(), original_audit)

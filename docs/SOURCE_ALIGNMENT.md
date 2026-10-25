@@ -4,6 +4,8 @@ A complete proposal → critique → revision handoff can still carry forward a 
 
 The runtime is `conductor.TextConductor`. It can import a completed, fresh text-memory revision with `begin_from_text_memory`, or accept an explicitly supplied source/candidate pair with `begin`. Import pins the upstream artifact references and event head; later upstream edits require a new source-check episode. The existing structured arithmetic `Conductor` and the baseline text pilot retain their previous contracts.
 
+Imported candidate units preserve boundary spaces, tabs, and exact offsets. Units use CR/LF delimiters, matching the upstream revision join rule; other Unicode separators remain inside their original unit. New repairs still reject boundary whitespace, but importing an already valid revision does not normalize its text.
+
 ```mermaid
 flowchart LR
     A[Source + candidate] --> B[Source comparison]
