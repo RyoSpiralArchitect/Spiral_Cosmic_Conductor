@@ -10,6 +10,8 @@
 6. **Evidence index owns document identity only**: SHA-256 digests, bounded lexical previews, strict source-scope checks. Indexing is not evidence authentication or semantic RAG.
 7. **Structural backward credit owns a diagnostic projection**: on failed deterministic validation, it maps root and affected dependency descendants. This is not an implementation of the separate EBRT differentiable algorithm.
 8. **Runtime backend plan is a proposal**: a typed local SpiralTorch plan must be validated by a trusted adapter before any future device execution. No GPU operation occurs in the current application.
+9. **Public text memory owns artifact identity and lineage**: an episode-local SQLite log stores explicit public documents with role scopes, immutable versions, bounded views, and stale-read rejection. Text decisions link source/critique/output spans but remain semantically unassessed; they do not acquire ledger verification status. See [the text memory contract](TEXT_MEMORY.md).
+10. **TextConductor owns source-based release**: a comparison role reads only the pinned original, current candidate, and immutable host policy. The host validates two-way coverage, derives blockers, reserves bounded repair calls, and requires a new source comparison after repair. Model judgments can release a candidate or leave it held, but never produce ledger verification. See [source comparison](SOURCE_ALIGNMENT.md).
 
 ## Failure boundaries
 

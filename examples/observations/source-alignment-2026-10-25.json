@@ -1,0 +1,621 @@
+{
+  "schema": "source_alignment_observation.v1",
+  "date": "2026-10-25",
+  "claim": "One synthetic live trajectory; model judgments are not ground truth; held is not semantic success.",
+  "runtime_commit": "5462a1e3260269f11fc78461fbef22f7e8798ad8",
+  "api_attempts_this_observation": 6,
+  "pre_fix_attempts": 3,
+  "post_fix_attempts": 3,
+  "prior_text_memory_live_attempts": 8,
+  "cumulative_live_attempts": 14,
+  "initial_failure": {
+    "assessment": null,
+    "blocker_ids": [],
+    "calls_used": 1,
+    "candidate": {
+      "episode": "source_pilot",
+      "id": "candidate_0",
+      "sha256": "19afea92d335089c67e0951c0d98db24b2644584b83f07e8d528e98bb8779268",
+      "version": 1
+    },
+    "claim": "Source comparison is a model assessment, not semantic proof.",
+    "reason": "worker_failed:AdapterError",
+    "round": 0,
+    "semantic_status": "unassessed",
+    "source": {
+      "episode": "source_pilot",
+      "id": "memo",
+      "sha256": "fa8a8513d88dcaedb7abb2bc480b80c877d0bfbd800008a35349c627816da461",
+      "version": 1
+    },
+    "state": "held",
+    "audit": {
+      "event_count": 3,
+      "artifact_versions": 6,
+      "slots_present": [
+        "candidate_0",
+        "memo",
+        "origin",
+        "outcome",
+        "policy",
+        "request_0"
+      ],
+      "event_head_sha256": "a507ec7369f2c8ffb992fa2eb645eee979854cac75bb6cfee88f030631157ba4",
+      "structural_integrity": true,
+      "semantic_status": "unassessed",
+      "private_context_exported": false
+    },
+    "result_text": null
+  },
+  "diagnostic": {
+    "http_status": 400,
+    "reason": "schema_complexity",
+    "source": "Captured Gemini error: schema produces a constraint with too many states"
+  },
+  "source_text": "来月、共有の道具棚の貸出手順を45分だけ試したい。利用者は最大7人、進行役は1人で、追加の係は頼めない。準備費は2,400円以内。試す道具の種類と点数はまだ決まっていない。\n水曜午後なら部屋が使えるかもしれないが、土曜にしか来られない人もおり、日程と利用許可は未確定。スマートフォンを持たない人でも参加できるようにしたい。氏名・連絡先の収集や写真撮影は行わず、登録サービスの利用も前提にしない。\n貸出や返却で迷った点が、次の手順案のどこを変えたかを追いたい。貸す側と借りる側の意見が合わなくても、その場で一本化する必要はない。準備が整わなければ模擬カードで手順だけ試す案も考えているが、これはまだ選択肢。\n",
+  "candidate_before": "来月、共有の道具棚の貸出手順を45分間試行的に実施します。\n参加者は最大7人、進行役は1人で、追加の係は依頼しません。\n準備費用は2,400円以内に抑えます。\n試行で使用する道具の種類と点数は未確定です。\n開催日は水曜午後の部屋利用可否を優先的に確認しつつ、土曜開催の可能性も参加者の都合により検討します。利用許可申請手続きは未確定です。\nスマートフォンを持たない人も参加可能な仕組みを用意します。\n氏名・連絡先の収集や写真撮影は行わず、登録サービスの利用も前提としません。\n貸出や返却で迷った点は記録し、次の手順案との差分を追跡します。\n貸す側と借りる側の意見が合わなくても、その場で一本化する必要はありません。\n準備が整わなければ模擬カードで手順だけを試す案も検討中です。\n準備段階では、日程調整として水曜午後の部屋利用可否の確認を優先し、土曜開催の可能性も検討します。利用許可申請手続きは未確定です。\n道具の選定は試行で使用する種類と点数を決定し、模擬カードの使用も選択肢の一つとして検討します。\n予算編成では2,400円以内で必要な物品（例：模擬カード、記録用紙、筆記用具等）を調達し、費用内訳を記録して超過リスクを回避します。\n実施当日は45分間で、開始5分は進行役による趣旨説明（ルール、時間配分、注意事項）と参加者の自己紹介（任意、氏名のみ）を行います。\n手順説明と模擬体験（25分）では、進行役が共有の道具棚の貸出手順を実演し、参加者に順番に体験してもらい、不明点を記録します。貸出と返却の各ステップで生じた疑問点もメモします。\n振り返りと記録（10分）では、参加者からの意見を自由に聴取し、記録された疑問点や意見を整理して次回の手順改善に反映させる方針を確認します。模擬カードの使用有無や実施内容も記録します。\n終了5分は進行役からのまとめと次回の展望、参加者への簡単なアンケート（任意、改善点の自由記述）を行います。\n記録方法は疑問点や意見を紙媒体（模造紙や付箋等）で記録し、進行役が中心となって整理し次回の手順案に反映させます。\n改善サイクルでは記録した内容を基に次回の手順案を作成し、貸出・返却の流れで迷いやすい箇所を優先的に見直します。参加者の意見が分かれた場合は双方の主張を記録として残し、合意を強制しません。\n担当は進行役が手順の実演、進行、記録の整理を担当し、参加者は手順の体験、意見の表明、記録への協力（任意）を行います。準備係は任意で模擬カードや記録用品の準備、会場設営を担当し、進行役が兼任可能です。\n未確定事項として日程（水曜午後の部屋利用可否、土曜開催の可能性）、道具の選定（種類と点数）、模擬カードの使用有無、利用許可申請手続き、記録の保管場所や次回への引き継ぎ方法を明示しています。\n注意事項として個人情報の収集や写真撮影を行わず、登録サービスの利用も前提としないこと、参加者の意見が分かれた場合はその場で一本化せず記録として残すこと、費用は2,400円以内に厳密に管理すること、記録した疑問点や意見は必ず次回の手順改善に反映させることを明記しています。",
+  "candidate_after": "来月、共有の道具棚の貸出手順を45分間試行的に実施します。\n参加者は最大7人、進行役は1人で、追加の係は依頼しません。\n準備費用は2,400円以内に抑えます。\n試行で使用する道具の種類と点数は未確定です。\n開催日は水曜午後の部屋利用可否を優先的に確認しつつ、土曜開催の可能性も参加者の都合により検討します。利用許可申請手続きは未確定です。\nスマートフォンを持たない人も参加可能な仕組みを用意します。\n氏名・連絡先の収集や写真撮影は行わず、登録サービスの利用も前提としません。\n貸出や返却で迷った点は記録し、次の手順案との差分を追跡します。\n貸す側と借りる側の意見が合わなくても、その場で一本化する必要はありません。\n準備が整わなければ模擬カードで手順だけを試す案も検討中です。\n準備段階では、日程調整として水曜午後の部屋利用可否の確認を優先し、土曜開催の可能性も検討します。利用許可申請手続きは未確定です。\n道具の選定は試行で使用する種類と点数を決定し、模擬カードの使用も選択肢の一つとして検討します。\n予算編成では2,400円以内で必要な物品（例：模擬カード、記録用紙、筆記用具等）を調達し、費用内訳を記録して超過リスクを回避します。\n実施当日は45分間で、開始5分は進行役による趣旨説明（ルール、時間配分、注意事項）と参加者の自己紹介（任意、氏名のみ）を行います。\n手順説明と模擬体験（25分）では、進行役が共有の道具棚の貸出手順を実演し、参加者に順番に体験してもらい、不明点を記録します。貸出と返却の各ステップで生じた疑問点もメモします。\n振り返りと記録（10分）では、参加者からの意見を自由に聴取し、記録された疑問点や意見を整理して次回の手順改善に反映させる方針を確認します。模擬カードの使用有無や実施内容も記録します。\n終了5分は進行役からのまとめと次回の展望、参加者への簡単なアンケート（任意、改善点の自由記述）を行います。\n記録方法は疑問点や意見を紙媒体（模造紙や付箋等）で記録し、進行役が中心となって整理し次回の手順案に反映させます。\n改善サイクルでは記録した内容を基に次回の手順案を作成し、貸出・返却の流れで迷いやすい箇所を優先的に見直します。参加者の意見が分かれた場合は双方の主張を記録として残し、合意を強制しません。\n担当は進行役が手順の実演、進行、記録の整理を担当し、参加者は手順の体験、意見の表明、記録への協力（任意）を行います。準備係は任意で模擬カードや記録用品の準備、会場設営を担当し、進行役が兼任可能です。\n未確定事項として日程（水曜午後の部屋利用可否、土曜開催の可能性）、道具の選定（種類と点数）、模擬カードの使用有無、利用許可申請手続き、記録の保管場所や次回への引き継ぎ方法を明示しています。\n注意事項として個人情報の収集や写真撮影を行わず、登録サービスの利用も前提としないこと、参加者の意見が分かれた場合はその場で一本化せず記録として残すこと、費用は2,400円以内に厳密に管理すること、記録した疑問点や意見は必ず次回の手順改善に反映させることを明記しています。",
+  "initial_assessment": {
+    "assessment_basis": "model_judgment",
+    "blocker_ids": [
+      "M01",
+      "M05"
+    ],
+    "candidate": {
+      "episode": "source_pilot",
+      "id": "candidate_0",
+      "sha256": "19afea92d335089c67e0951c0d98db24b2644584b83f07e8d528e98bb8779268",
+      "version": 1
+    },
+    "candidates": [
+      {
+        "compatibility": "compatible",
+        "id": "C01",
+        "origin": "mixed",
+        "reason": "「45分だけ」が「45分間試行的に」に変更され、試行の意図が明確化されたが、内容は保持されている。",
+        "source_ids": [
+          "M01"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C02",
+        "origin": "source",
+        "reason": "原文の内容がそのまま保持されている。",
+        "source_ids": [
+          "M02"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C03",
+        "origin": "source",
+        "reason": "原文の内容がそのまま保持されている。",
+        "source_ids": [
+          "M03"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C04",
+        "origin": "source",
+        "reason": "原文の内容がそのまま保持されている。",
+        "source_ids": [
+          "M04"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C05",
+        "origin": "mixed",
+        "reason": "M05の日程と利用許可の未確定性が保持されつつ、水曜午後の優先確認と土曜開催の検討が追加された。",
+        "source_ids": [
+          "M05"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C06",
+        "origin": "source",
+        "reason": "原文の内容がそのまま保持されている。",
+        "source_ids": [
+          "M06"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C07",
+        "origin": "source",
+        "reason": "原文の内容がそのまま保持されている。",
+        "source_ids": [
+          "M07"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C08",
+        "origin": "source",
+        "reason": "原文の内容がそのまま保持されている。",
+        "source_ids": [
+          "M08"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C09",
+        "origin": "source",
+        "reason": "原文の内容がそのまま保持されている。",
+        "source_ids": [
+          "M09"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C10",
+        "origin": "source",
+        "reason": "原文の内容がそのまま保持されている。",
+        "source_ids": [
+          "M10"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C11",
+        "origin": "mixed",
+        "reason": "M05の日程と利用許可の未確定性が保持されつつ、水曜午後の優先確認と土曜開催の検討が追加された。",
+        "source_ids": [
+          "M05"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C12",
+        "origin": "mixed",
+        "reason": "M04の道具の未確定性とM10の模擬カードの検討が組み合わされ、具体的な検討内容が追加された。",
+        "source_ids": [
+          "M04",
+          "M10"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C13",
+        "origin": "mixed",
+        "reason": "M03の費用上限が保持され、具体的な予算編成と記録方法が追加された。",
+        "source_ids": [
+          "M03"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C14",
+        "origin": "proposal",
+        "reason": "試行当日の具体的な時間配分と内容が追加された。M01の45分と整合する。",
+        "source_ids": []
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C15",
+        "origin": "proposal",
+        "reason": "手順説明と模擬体験の具体的な内容が追加された。M08の迷った点の記録と整合する。",
+        "source_ids": []
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C16",
+        "origin": "proposal",
+        "reason": "振り返りと記録の具体的な内容が追加された。M08の改善反映と整合する。",
+        "source_ids": []
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C17",
+        "origin": "proposal",
+        "reason": "終了時のまとめとアンケートの具体的な内容が追加された。",
+        "source_ids": []
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C18",
+        "origin": "proposal",
+        "reason": "記録方法の具体的な内容が追加された。M08の記録と整合する。",
+        "source_ids": []
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C19",
+        "origin": "mixed",
+        "reason": "M08の改善サイクルとM09の意見不一致時の対応が組み合わされ、具体的な改善サイクルが追加された。",
+        "source_ids": [
+          "M08",
+          "M09"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C20",
+        "origin": "proposal",
+        "reason": "各担当者の役割が具体的に追加された。M02の進行役1人と整合する。",
+        "source_ids": []
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C21",
+        "origin": "mixed",
+        "reason": "M04, M05, M10の未確定事項がまとめられ、記録の保管場所と引き継ぎ方法が追加された。",
+        "source_ids": [
+          "M04",
+          "M05",
+          "M10"
+        ]
+      },
+      {
+        "compatibility": "compatible",
+        "id": "C22",
+        "origin": "mixed",
+        "reason": "M03, M07, M09の注意事項がまとめられ、記録の改善反映が追加された。M08と整合する。",
+        "source_ids": [
+          "M03",
+          "M07",
+          "M09"
+        ]
+      }
+    ],
+    "coverage": "complete",
+    "policy": {
+      "episode": "source_pilot",
+      "id": "policy",
+      "sha256": "0b955498f6a36791fb304b620526392adcc141032a6d91dd2bedf1e9eefb4fa0",
+      "version": 1
+    },
+    "schema": "source_alignment.v1",
+    "semantic_status": "unassessed",
+    "source": {
+      "episode": "source_pilot",
+      "id": "memo",
+      "sha256": "fa8a8513d88dcaedb7abb2bc480b80c877d0bfbd800008a35349c627816da461",
+      "version": 1
+    },
+    "sources": [
+      {
+        "candidate_ids": [
+          "C01"
+        ],
+        "id": "M01",
+        "reason": "「45分だけ」が「45分間試行的に」に変更され、試行の意図が明確化された。",
+        "status": "changed"
+      },
+      {
+        "candidate_ids": [
+          "C02"
+        ],
+        "id": "M02",
+        "reason": "参加者数、進行役の人数、追加係の有無が原文通り保持されている。",
+        "status": "preserved"
+      },
+      {
+        "candidate_ids": [
+          "C03"
+        ],
+        "id": "M03",
+        "reason": "準備費用の上限が原文通り保持されている。",
+        "status": "preserved"
+      },
+      {
+        "candidate_ids": [
+          "C04"
+        ],
+        "id": "M04",
+        "reason": "試行で使用する道具の種類と点数が未確定である点が保持されている。",
+        "status": "preserved"
+      },
+      {
+        "candidate_ids": [
+          "C05",
+          "C11",
+          "C21"
+        ],
+        "id": "M05",
+        "reason": "日程調整の優先順位が明確化され、利用許可申請手続きが未確定事項として分離された。",
+        "status": "changed"
+      },
+      {
+        "candidate_ids": [
+          "C06"
+        ],
+        "id": "M06",
+        "reason": "スマートフォンを持たない人への配慮が原文通り保持されている。",
+        "status": "preserved"
+      },
+      {
+        "candidate_ids": [
+          "C07",
+          "C22"
+        ],
+        "id": "M07",
+        "reason": "個人情報収集、写真撮影、登録サービス利用の禁止が原文通り保持されている。",
+        "status": "preserved"
+      },
+      {
+        "candidate_ids": [
+          "C08"
+        ],
+        "id": "M08",
+        "reason": "貸出・返却で迷った点の記録と、次の手順案との差分追跡の目的が保持されている。",
+        "status": "preserved"
+      },
+      {
+        "candidate_ids": [
+          "C09",
+          "C19",
+          "C22"
+        ],
+        "id": "M09",
+        "reason": "意見の不一致時の対応方針が原文通り保持されている。",
+        "status": "preserved"
+      },
+      {
+        "candidate_ids": [
+          "C10",
+          "C12",
+          "C21"
+        ],
+        "id": "M10",
+        "reason": "模擬カードで手順を試す案が検討中である点が保持されている。",
+        "status": "preserved"
+      }
+    ]
+  },
+  "repair_trace": {
+    "assessment": {
+      "episode": "source_pilot",
+      "id": "check_0",
+      "sha256": "227e77ba609e4d5f2587d0e93903f1a6243f5a56b81c366d625addfeba5e759b",
+      "version": 1
+    },
+    "candidate": {
+      "episode": "source_pilot",
+      "id": "candidate_1",
+      "sha256": "19afea92d335089c67e0951c0d98db24b2644584b83f07e8d528e98bb8779268",
+      "version": 1
+    },
+    "effect_status": "unassessed",
+    "requires_source_recheck": true,
+    "resolutions": [
+      {
+        "action": "addressed",
+        "candidate_ids": [
+          "C01"
+        ],
+        "id": "M01",
+        "reason": "試行の意図を明確化しつつ内容保持のため45分間試行的に修正。"
+      },
+      {
+        "action": "addressed",
+        "candidate_ids": [
+          "C05",
+          "C11",
+          "C21"
+        ],
+        "id": "M05",
+        "reason": "日程調整の優先順位明確化と利用許可申請の未確定を分離し追加。"
+      }
+    ]
+  },
+  "post_fix_report": {
+    "assessment": null,
+    "blocker_ids": [],
+    "calls_used": 3,
+    "candidate": {
+      "episode": "source_pilot",
+      "id": "candidate_1",
+      "sha256": "19afea92d335089c67e0951c0d98db24b2644584b83f07e8d528e98bb8779268",
+      "version": 1
+    },
+    "claim": "Source comparison is a model assessment, not semantic proof.",
+    "reason": "worker_failed:ContractError",
+    "round": 1,
+    "semantic_status": "unassessed",
+    "source": {
+      "episode": "source_pilot",
+      "id": "memo",
+      "sha256": "fa8a8513d88dcaedb7abb2bc480b80c877d0bfbd800008a35349c627816da461",
+      "version": 1
+    },
+    "state": "held",
+    "audit": {
+      "event_count": 7,
+      "artifact_versions": 11,
+      "slots_present": [
+        "candidate_0",
+        "candidate_1",
+        "check_0",
+        "memo",
+        "origin",
+        "outcome",
+        "policy",
+        "repair_trace_1",
+        "request_0",
+        "request_1",
+        "request_2"
+      ],
+      "event_head_sha256": "de031a7a41b5fc353e6a7a6aedafcc603d1b3d6bc5a196dc2ed885e426fcad5c",
+      "structural_integrity": true,
+      "semantic_status": "unassessed",
+      "private_context_exported": false
+    },
+    "result_text": null
+  },
+  "post_fix_summary": {
+    "mode": "live",
+    "live_api_calls": 3,
+    "call_attempts": 3,
+    "matched_replay_calls": [],
+    "known_usage": {
+      "prompt_tokens": 8485,
+      "completion_tokens": 4872
+    },
+    "unknown_usage_calls": 0,
+    "state": "held",
+    "semantic_status": "unassessed"
+  },
+  "host_rejection": {
+    "exception": "ContractError",
+    "message": "Invalid comparison text",
+    "violations": [
+      {
+        "group": "sources",
+        "id": "M05",
+        "chars": 98,
+        "limit": 80
+      },
+      {
+        "group": "sources",
+        "id": "M10",
+        "chars": 84,
+        "limit": 80
+      },
+      {
+        "group": "candidates",
+        "id": "C12",
+        "chars": 85,
+        "limit": 80
+      }
+    ]
+  },
+  "candidate_bytes_unchanged": true,
+  "both_captures_replay_exactly": true,
+  "capture_manifest_sha256": {
+    "live": "c08b9164c4dacc0967778d6dcda6dd9a66c4616a67b857b74e3cce52fde320f3",
+    "repaired-live": "aad12998dc62421bc1496e8637aaada3a6ed2b2e4ea7037f2bd4607597797bcd",
+    "repaired-replay": "69ffc9b140e4b8ffd7bce8b01c0275aa2d4eff9577ccc71da213f0c999137b5a"
+  },
+  "post_fix_exchanges": [
+    {
+      "exchange": {
+        "finish_reason": "stop",
+        "provider": "gemini",
+        "request_sha256": "bdc2de2643566509782d35d2cf85417ee7f5b5431ee59001a57d6355a2a22ba1",
+        "request_slot": "request_0",
+        "response_sha256": "8ce0801ea7b5624b1de7dd7746428e966dbdece9182f2aa8204e6dd9ff4c8229",
+        "role": "source_auditor",
+        "round": 0,
+        "status": "returned",
+        "usage": {
+          "completion_tokens": 1709,
+          "prompt_tokens": 2102
+        }
+      },
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "content": "{\"sources\": [{\"id\": \"M01\", \"status\": \"changed\", \"candidate_ids\": [\"C01\"], \"reason\": \"「45分だけ」が「45分間試行的に」に変更され、試行の意図が明確化された。\"}, {\"id\": \"M02\", \"status\": \"preserved\", \"candidate_ids\": [\"C02\"], \"reason\": \"参加者数、進行役の人数、追加係の有無が原文通り保持されている。\"}, {\"id\": \"M03\", \"status\": \"preserved\", \"candidate_ids\": [\"C03\"], \"reason\": \"準備費用の上限が原文通り保持されている。\"}, {\"id\": \"M04\", \"status\": \"preserved\", \"candidate_ids\": [\"C04\"], \"reason\": \"試行で使用する道具の種類と点数が未確定である点が保持されている。\"}, {\"id\": \"M05\", \"status\": \"changed\", \"candidate_ids\": [\"C05\", \"C11\", \"C21\"], \"reason\": \"日程調整の優先順位が明確化され、利用許可申請手続きが未確定事項として分離された。\"}, {\"id\": \"M06\", \"status\": \"preserved\", \"candidate_ids\": [\"C06\"], \"reason\": \"スマートフォンを持たない人への配慮が原文通り保持されている。\"}, {\"id\": \"M07\", \"status\": \"preserved\", \"candidate_ids\": [\"C07\", \"C22\"], \"reason\": \"個人情報収集、写真撮影、登録サービス利用の禁止が原文通り保持されている。\"}, {\"id\": \"M08\", \"status\": \"preserved\", \"candidate_ids\": [\"C08\"], \"reason\": \"貸出・返却で迷った点の記録と、次の手順案との差分追跡の目的が保持されている。\"}, {\"id\": \"M09\", \"status\": \"preserved\", \"candidate_ids\": [\"C09\", \"C19\", \"C22\"], \"reason\": \"意見の不一致時の対応方針が原文通り保持されている。\"}, {\"id\": \"M10\", \"status\": \"preserved\", \"candidate_ids\": [\"C10\", \"C12\", \"C21\"], \"reason\": \"模擬カードで手順を試す案が検討中である点が保持されている。\"}], \"candidates\": [{\"id\": \"C01\", \"origin\": \"mixed\", \"source_ids\": [\"M01\"], \"compatibility\": \"compatible\", \"reason\": \"「45分だけ」が「45分間試行的に」に変更され、試行の意図が明確化されたが、内容は保持されている。\"}, {\"id\": \"C02\", \"origin\": \"source\", \"source_ids\": [\"M02\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容がそのまま保持されている。\"}, {\"id\": \"C03\", \"origin\": \"source\", \"source_ids\": [\"M03\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容がそのまま保持されている。\"}, {\"id\": \"C04\", \"origin\": \"source\", \"source_ids\": [\"M04\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容がそのまま保持されている。\"}, {\"id\": \"C05\", \"origin\": \"mixed\", \"source_ids\": [\"M05\"], \"compatibility\": \"compatible\", \"reason\": \"M05の日程と利用許可の未確定性が保持されつつ、水曜午後の優先確認と土曜開催の検討が追加された。\"}, {\"id\": \"C06\", \"origin\": \"source\", \"source_ids\": [\"M06\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容がそのまま保持されている。\"}, {\"id\": \"C07\", \"origin\": \"source\", \"source_ids\": [\"M07\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容がそのまま保持されている。\"}, {\"id\": \"C08\", \"origin\": \"source\", \"source_ids\": [\"M08\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容がそのまま保持されている。\"}, {\"id\": \"C09\", \"origin\": \"source\", \"source_ids\": [\"M09\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容がそのまま保持されている。\"}, {\"id\": \"C10\", \"origin\": \"source\", \"source_ids\": [\"M10\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容がそのまま保持されている。\"}, {\"id\": \"C11\", \"origin\": \"mixed\", \"source_ids\": [\"M05\"], \"compatibility\": \"compatible\", \"reason\": \"M05の日程と利用許可の未確定性が保持されつつ、水曜午後の優先確認と土曜開催の検討が追加された。\"}, {\"id\": \"C12\", \"origin\": \"mixed\", \"source_ids\": [\"M04\", \"M10\"], \"compatibility\": \"compatible\", \"reason\": \"M04の道具の未確定性とM10の模擬カードの検討が組み合わされ、具体的な検討内容が追加された。\"}, {\"id\": \"C13\", \"origin\": \"mixed\", \"source_ids\": [\"M03\"], \"compatibility\": \"compatible\", \"reason\": \"M03の費用上限が保持され、具体的な予算編成と記録方法が追加された。\"}, {\"id\": \"C14\", \"origin\": \"proposal\", \"source_ids\": [], \"compatibility\": \"compatible\", \"reason\": \"試行当日の具体的な時間配分と内容が追加された。M01の45分と整合する。\"}, {\"id\": \"C15\", \"origin\": \"proposal\", \"source_ids\": [], \"compatibility\": \"compatible\", \"reason\": \"手順説明と模擬体験の具体的な内容が追加された。M08の迷った点の記録と整合する。\"}, {\"id\": \"C16\", \"origin\": \"proposal\", \"source_ids\": [], \"compatibility\": \"compatible\", \"reason\": \"振り返りと記録の具体的な内容が追加された。M08の改善反映と整合する。\"}, {\"id\": \"C17\", \"origin\": \"proposal\", \"source_ids\": [], \"compatibility\": \"compatible\", \"reason\": \"終了時のまとめとアンケートの具体的な内容が追加された。\"}, {\"id\": \"C18\", \"origin\": \"proposal\", \"source_ids\": [], \"compatibility\": \"compatible\", \"reason\": \"記録方法の具体的な内容が追加された。M08の記録と整合する。\"}, {\"id\": \"C19\", \"origin\": \"mixed\", \"source_ids\": [\"M08\", \"M09\"], \"compatibility\": \"compatible\", \"reason\": \"M08の改善サイクルとM09の意見不一致時の対応が組み合わされ、具体的な改善サイクルが追加された。\"}, {\"id\": \"C20\", \"origin\": \"proposal\", \"source_ids\": [], \"compatibility\": \"compatible\", \"reason\": \"各担当者の役割が具体的に追加された。M02の進行役1人と整合する。\"}, {\"id\": \"C21\", \"origin\": \"mixed\", \"source_ids\": [\"M04\", \"M05\", \"M10\"], \"compatibility\": \"compatible\", \"reason\": \"M04, M05, M10の未確定事項がまとめられ、記録の保管場所と引き継ぎ方法が追加された。\"}, {\"id\": \"C22\", \"origin\": \"mixed\", \"source_ids\": [\"M03\", \"M07\", \"M09\"], \"compatibility\": \"compatible\", \"reason\": \"M03, M07, M09の注意事項がまとめられ、記録の改善反映が追加された。M08と整合する。\"}]}",
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": 1792895260,
+        "id": "FWndavCqCbr5nsEPt8KiiQo",
+        "model": "gemini-2.5-flash",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1709,
+          "prompt_tokens": 2102,
+          "total_tokens": 3811
+        }
+      }
+    },
+    {
+      "exchange": {
+        "finish_reason": "stop",
+        "provider": "openai",
+        "request_sha256": "c8959feeaa3a7ee4fdd00acb260c1c71736acfad72019544c5a720144343e3c8",
+        "request_slot": "request_1",
+        "response_sha256": "6438ca245a3799be672ab4e087db6f8eec06bce35178f8392110ee6983504e03",
+        "role": "repairer",
+        "round": 1,
+        "status": "returned",
+        "usage": {
+          "completion_tokens": 1330,
+          "prompt_tokens": 4281
+        }
+      },
+      "response": {
+        "id": "chatcmpl-EciFTJaVz92guIzqOSt8yvzpoYXI7",
+        "object": "chat.completion",
+        "created": 1792895263,
+        "model": "gpt-4.1-mini-2025-04-14",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "{\"units\":[{\"id\":\"C01\",\"text\":\"来月、共有の道具棚の貸出手順を45分間試行的に実施します。\"},{\"id\":\"C02\",\"text\":\"参加者は最大7人、進行役は1人で、追加の係は依頼しません。\"},{\"id\":\"C03\",\"text\":\"準備費用は2,400円以内に抑えます。\"},{\"id\":\"C04\",\"text\":\"試行で使用する道具の種類と点数は未確定です。\"},{\"id\":\"C05\",\"text\":\"開催日は水曜午後の部屋利用可否を優先的に確認しつつ、土曜開催の可能性も参加者の都合により検討します。利用許可申請手続きは未確定です。\"},{\"id\":\"C06\",\"text\":\"スマートフォンを持たない人も参加可能な仕組みを用意します。\"},{\"id\":\"C07\",\"text\":\"氏名・連絡先の収集や写真撮影は行わず、登録サービスの利用も前提としません。\"},{\"id\":\"C08\",\"text\":\"貸出や返却で迷った点は記録し、次の手順案との差分を追跡します。\"},{\"id\":\"C09\",\"text\":\"貸す側と借りる側の意見が合わなくても、その場で一本化する必要はありません。\"},{\"id\":\"C10\",\"text\":\"準備が整わなければ模擬カードで手順だけを試す案も検討中です。\"},{\"id\":\"C11\",\"text\":\"準備段階では、日程調整として水曜午後の部屋利用可否の確認を優先し、土曜開催の可能性も検討します。利用許可申請手続きは未確定です。\"},{\"id\":\"C12\",\"text\":\"道具の選定は試行で使用する種類と点数を決定し、模擬カードの使用も選択肢の一つとして検討します。\"},{\"id\":\"C13\",\"text\":\"予算編成では2,400円以内で必要な物品（例：模擬カード、記録用紙、筆記用具等）を調達し、費用内訳を記録して超過リスクを回避します。\"},{\"id\":\"C14\",\"text\":\"実施当日は45分間で、開始5分は進行役による趣旨説明（ルール、時間配分、注意事項）と参加者の自己紹介（任意、氏名のみ）を行います。\"},{\"id\":\"C15\",\"text\":\"手順説明と模擬体験（25分）では、進行役が共有の道具棚の貸出手順を実演し、参加者に順番に体験してもらい、不明点を記録します。貸出と返却の各ステップで生じた疑問点もメモします。\"},{\"id\":\"C16\",\"text\":\"振り返りと記録（10分）では、参加者からの意見を自由に聴取し、記録された疑問点や意見を整理して次回の手順改善に反映させる方針を確認します。模擬カードの使用有無や実施内容も記録します。\"},{\"id\":\"C17\",\"text\":\"終了5分は進行役からのまとめと次回の展望、参加者への簡単なアンケート（任意、改善点の自由記述）を行います。\"},{\"id\":\"C18\",\"text\":\"記録方法は疑問点や意見を紙媒体（模造紙や付箋等）で記録し、進行役が中心となって整理し次回の手順案に反映させます。\"},{\"id\":\"C19\",\"text\":\"改善サイクルでは記録した内容を基に次回の手順案を作成し、貸出・返却の流れで迷いやすい箇所を優先的に見直します。参加者の意見が分かれた場合は双方の主張を記録として残し、合意を強制しません。\"},{\"id\":\"C20\",\"text\":\"担当は進行役が手順の実演、進行、記録の整理を担当し、参加者は手順の体験、意見の表明、記録への協力（任意）を行います。準備係は任意で模擬カードや記録用品の準備、会場設営を担当し、進行役が兼任可能です。\"},{\"id\":\"C21\",\"text\":\"未確定事項として日程（水曜午後の部屋利用可否、土曜開催の可能性）、道具の選定（種類と点数）、模擬カードの使用有無、利用許可申請手続き、記録の保管場所や次回への引き継ぎ方法を明示しています。\"},{\"id\":\"C22\",\"text\":\"注意事項として個人情報の収集や写真撮影を行わず、登録サービスの利用も前提としないこと、参加者の意見が分かれた場合はその場で一本化せず記録として残すこと、費用は2,400円以内に厳密に管理すること、記録した疑問点や意見は必ず次回の手順改善に反映させることを明記しています。\"}],\"resolutions\":[{\"id\":\"M01\",\"action\":\"addressed\",\"candidate_ids\":[\"C01\"],\"reason\":\"試行の意図を明確化しつつ内容保持のため45分間試行的に修正。\"},{\"id\":\"M05\",\"action\":\"addressed\",\"candidate_ids\":[\"C05\",\"C11\",\"C21\"],\"reason\":\"日程調整の優先順位明確化と利用許可申請の未確定を分離し追加。\"}]}",
+              "refusal": null,
+              "annotations": []
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 4281,
+          "completion_tokens": 1330,
+          "total_tokens": 5611,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "service_tier": "default",
+        "system_fingerprint": "fp_07e815c12d"
+      }
+    },
+    {
+      "exchange": {
+        "finish_reason": "stop",
+        "provider": "gemini",
+        "request_sha256": "ec2d9a82566a8b28f397c401a86bfd0fd233a2c82f55e2b846e504e40114e5ee",
+        "request_slot": "request_2",
+        "response_sha256": "09a38ab07bbcf451992f7c03897e910f1abc739edb7502f946f2a5dbbe1cf974",
+        "role": "source_auditor",
+        "round": 1,
+        "status": "returned",
+        "usage": {
+          "completion_tokens": 1833,
+          "prompt_tokens": 2102
+        }
+      },
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "content": "{\"sources\": [{\"id\": \"M01\", \"status\": \"changed\", \"candidate_ids\": [\"C01\"], \"reason\": \"「だけ」が「間試行的に」に変更され、より丁寧な表現になっている。\"}, {\"id\": \"M02\", \"status\": \"preserved\", \"candidate_ids\": [\"C02\"], \"reason\": \"内容が完全に保持されている。\"}, {\"id\": \"M03\", \"status\": \"preserved\", \"candidate_ids\": [\"C03\"], \"reason\": \"内容が完全に保持されている。\"}, {\"id\": \"M04\", \"status\": \"preserved\", \"candidate_ids\": [\"C04\"], \"reason\": \"内容が完全に保持されている。\"}, {\"id\": \"M05\", \"status\": \"changed\", \"candidate_ids\": [\"C05\", \"C11\", \"C21\"], \"reason\": \"「水曜午後なら部屋が使えるかもしれない」が「水曜午後の部屋利用可否を優先的に確認しつつ」に変更され、より具体的な行動が示されている。また、日程と利用許可が未確定である点が複数箇所で言及されている。\"}, {\"id\": \"M06\", \"status\": \"preserved\", \"candidate_ids\": [\"C06\"], \"reason\": \"内容が完全に保持されている。\"}, {\"id\": \"M07\", \"status\": \"preserved\", \"candidate_ids\": [\"C07\", \"C22\"], \"reason\": \"内容が完全に保持されている。\"}, {\"id\": \"M08\", \"status\": \"changed\", \"candidate_ids\": [\"C08\", \"C19\"], \"reason\": \"「どこを変えたか」が「次の手順案との差分を追跡します」に変更され、より具体的な表現になっている。\"}, {\"id\": \"M09\", \"status\": \"preserved\", \"candidate_ids\": [\"C09\", \"C19\", \"C22\"], \"reason\": \"内容が完全に保持されている。\"}, {\"id\": \"M10\", \"status\": \"changed\", \"candidate_ids\": [\"C10\", \"C12\", \"C21\"], \"reason\": \"「これはまだ選択肢」が「検討中です」に変更され、より具体的な状況が示されている。また、模擬カードの使用が選択肢の一つとして検討されていることが複数箇所で言及されている。\"}], \"candidates\": [{\"id\": \"C01\", \"origin\": \"mixed\", \"source_ids\": [\"M01\"], \"compatibility\": \"compatible\", \"reason\": \"「だけ」が「間試行的に」に変更され、より丁寧な表現になっているが、意味は保持されている。\"}, {\"id\": \"C02\", \"origin\": \"source\", \"source_ids\": [\"M02\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容が完全に保持されている。\"}, {\"id\": \"C03\", \"origin\": \"source\", \"source_ids\": [\"M03\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容が完全に保持されている。\"}, {\"id\": \"C04\", \"origin\": \"source\", \"source_ids\": [\"M04\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容が完全に保持されている。\"}, {\"id\": \"C05\", \"origin\": \"mixed\", \"source_ids\": [\"M05\"], \"compatibility\": \"compatible\", \"reason\": \"M05の「水曜午後なら部屋が使えるかもしれない」が「水曜午後の部屋利用可否を優先的に確認しつつ」に変更され、より具体的な行動が示されている。\"}, {\"id\": \"C06\", \"origin\": \"source\", \"source_ids\": [\"M06\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容が完全に保持されている。\"}, {\"id\": \"C07\", \"origin\": \"source\", \"source_ids\": [\"M07\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容が完全に保持されている。\"}, {\"id\": \"C08\", \"origin\": \"mixed\", \"source_ids\": [\"M08\"], \"compatibility\": \"compatible\", \"reason\": \"M08の「どこを変えたか」が「次の手順案との差分を追跡します」に変更され、より具体的な表現になっている。\"}, {\"id\": \"C09\", \"origin\": \"source\", \"source_ids\": [\"M09\"], \"compatibility\": \"compatible\", \"reason\": \"原文の内容が完全に保持されている。\"}, {\"id\": \"C10\", \"origin\": \"mixed\", \"source_ids\": [\"M10\"], \"compatibility\": \"compatible\", \"reason\": \"M10の「これはまだ選択肢」が「検討中です」に変更され、より具体的な状況が示されている。\"}, {\"id\": \"C11\", \"origin\": \"mixed\", \"source_ids\": [\"M05\"], \"compatibility\": \"compatible\", \"reason\": \"M05の「水曜午後なら部屋が使えるかもしれない」が「水曜午後の部屋利用可否の確認を優先し」に変更され、より具体的な行動が示されている。\"}, {\"id\": \"C12\", \"origin\": \"mixed\", \"source_ids\": [\"M04\", \"M10\"], \"compatibility\": \"compatible\", \"reason\": \"M04の「試す道具の種類と点数はまだ決まっていない」とM10の「模擬カードで手順だけ試す案も考えているが、これはまだ選択肢」を統合し、具体的な検討内容として提示している。\"}, {\"id\": \"C13\", \"origin\": \"proposal\", \"source_ids\": [\"M03\"], \"compatibility\": \"compatible\", \"reason\": \"M03の準備費2,400円以内という条件を具体的に予算編成として詳細化している。\"}, {\"id\": \"C14\", \"origin\": \"proposal\", \"source_ids\": [\"M01\"], \"compatibility\": \"compatible\", \"reason\": \"M01の45分間試行という条件を具体的に実施当日の時間配分として詳細化している。\"}, {\"id\": \"C15\", \"origin\": \"proposal\", \"source_ids\": [\"M01\", \"M08\"], \"compatibility\": \"compatible\", \"reason\": \"M01の貸出手順試行とM08の迷った点の記録を具体的に手順説明と模擬体験として詳細化している。\"}, {\"id\": \"C16\", \"origin\": \"proposal\", \"source_ids\": [\"M08\", \"M10\"], \"compatibility\": \"compatible\", \"reason\": \"M08の迷った点の追跡とM10の模擬カードの選択肢を具体的に振り返りと記録として詳細化している。\"}, {\"id\": \"C17\", \"origin\": \"proposal\", \"source_ids\": [], \"compatibility\": \"compatible\", \"reason\": \"試行の終了部分を具体的に詳細化している。\"}, {\"id\": \"C18\", \"origin\": \"proposal\", \"source_ids\": [\"M08\"], \"compatibility\": \"compatible\", \"reason\": \"M08の迷った点の記録方法を具体的に詳細化している。\"}, {\"id\": \"C19\", \"origin\": \"mixed\", \"source_ids\": [\"M08\", \"M09\"], \"compatibility\": \"compatible\", \"reason\": \"M08の迷った点の追跡とM09の意見一本化不要の条件を具体的に改善サイクルとして詳細化している。\"}, {\"id\": \"C20\", \"origin\": \"proposal\", \"source_ids\": [\"M02\"], \"compatibility\": \"compatible\", \"reason\": \"M02の参加者と進行役の役割を具体的に詳細化している。\"}, {\"id\": \"C21\", \"origin\": \"mixed\", \"source_ids\": [\"M04\", \"M05\", \"M10\"], \"compatibility\": \"compatible\", \"reason\": \"M04の道具の種類と点数、M05の日程と利用許可、M10の模擬カードの選択肢を未確定事項としてまとめている。\"}, {\"id\": \"C22\", \"origin\": \"mixed\", \"source_ids\": [\"M03\", \"M07\", \"M09\"], \"compatibility\": \"compatible\", \"reason\": \"M03の準備費、M07の個人情報収集禁止、M09の意見一本化不要を注意事項としてまとめている。\"} ]}",
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": 1792895279,
+        "id": "KGndaveeI4rbxN8PoeWrkAI",
+        "model": "gemini-2.5-flash",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 1833,
+          "prompt_tokens": 2102,
+          "total_tokens": 3935
+        }
+      }
+    }
+  ]
+}
