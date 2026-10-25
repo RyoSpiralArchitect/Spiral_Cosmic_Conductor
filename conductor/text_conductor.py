@@ -188,11 +188,14 @@ class TextConductor:
         return snapshot, payload
 
     def request(self) -> SourceRequest | None:
+        selected_revision = self.memory.audit()["event_count"]
         step = self._next()
         if step is None:
             return None
         role, r = step
         snapshot, payload = self._payload(role, r)
+        if snapshot["revision"] != selected_revision:
+            raise ContractError("Source state changed during reservation")
         slot = f"request_{len(self._requests())}"
         meta = {"role": role, "round": r, "payload_sha256": digest(payload),
                 "expected_reply_revision": snapshot["revision"] + 1,

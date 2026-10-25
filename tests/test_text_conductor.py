@@ -142,6 +142,29 @@ class TextConductorTests(unittest.TestCase):
                     second.request()
                 self.assertEqual(second.report()["calls_used"], 1)
 
+    def test_interleaved_controllers_cannot_reserve_duplicate_after_stage_selection(self):
+        for reserve_before_snapshot in (True, False):
+            with self.subTest(before_snapshot=reserve_before_snapshot):
+                path = Path(self.tmp.name) / f"interleave-{reserve_before_snapshot}.sqlite"
+                with TextConductor(path, "episode") as first, TextConductor(path, "episode") as second:
+                    first.begin(MEMO, DRAFT)
+                    original_payload, reserved = second._payload, []
+                    def interleave(role, round_index):
+                        if reserve_before_snapshot:
+                            reserved.append(first.request())
+                        value = original_payload(role, round_index)
+                        if not reserve_before_snapshot:
+                            reserved.append(first.request())
+                        return value
+                    with patch.object(second, "_payload", side_effect=interleave):
+                        with self.assertRaises(ContractError):
+                            second.request()
+                    self.assertEqual(first.report()["calls_used"], 1)
+                    self.assertEqual(reserved[0].slot, "request_0")
+                    first.submit(reserved[0], canonical(judgment()))
+                    self.assertIsNone(first.request())
+                    self.assertEqual(first.report()["state"], "released_candidate")
+
     def test_call_budget_and_zero_repairs_hold_without_extra_worker_calls(self):
         for limit in (SourcePolicy(max_calls=1), SourcePolicy(max_repairs=0)):
             with self.subTest(limit=limit), TextConductor(Path(self.tmp.name) / f"budget{limit.max_repairs}.sqlite", "episode", limit) as conductor:
