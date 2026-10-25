@@ -8,11 +8,12 @@ result. It freezes a source snapshot; it does not turn model judgment into proof
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import count
 from pathlib import Path
 import time
 
 from .multipolar import Agent, MultipolarBroker
-from .shared_memory import ArtifactRef, MemoryLimits, Publication, SharedMemory, text_hash
+from .shared_memory import ArtifactRef, MemoryLimits, Publication, SharedMemory, text_hash, exceeds
 from .source_alignment import (AUDITOR_INSTRUCTIONS, REPAIR_INSTRUCTIONS, SourcePolicy,
                                assess, candidate_units, repair, schema, source_units)
 from .text_workflow import documents, resolve_span
@@ -24,7 +25,7 @@ class SourceRequest:
     slot: str
     expected_revision: int
     payload: dict
-    timeout_s: float
+    timeout_s: float | None
 
 
 class TextConductor:
@@ -38,22 +39,16 @@ class TextConductor:
     def __init__(self, path: Path, episode: str, policy: SourcePolicy | None = None,
                  limits: MemoryLimits | None = None):
         self.policy = policy or SourcePolicy()
-        rounds = range(self.policy.max_repairs + 1)
-        candidates = {f"candidate_{r}" for r in rounds}
-        checks = {f"check_{r}" for r in rounds}
-        traces = {f"repair_trace_{r}" for r in rounds if r}
-        requests = {f"request_{n}" for n in range(self.policy.max_calls)}
-        slots = {"memo": "source", "policy": "guidance", "origin": "trace", "outcome": "trace"}
-        slots.update({s: "revision" for s in candidates})
-        slots.update({s: "review" for s in checks})
-        slots.update({s: "trace" for s in traces | requests})
-        common = {"memo", "policy"} | candidates | requests
+        slots = {"memo": "source", "policy": "guidance", "origin": "trace", "outcome": "trace", "candidate_0": "revision"}
+        families = {"candidate_": "revision", "check_": "review", "repair_trace_": "trace", "request_": "trace"}
+        common = {"memo", "policy", "candidate_0", "candidate_", "request_"}
         broker = MultipolarBroker([
-            Agent("controller", frozenset(slots), frozenset({"memo", "policy", "origin", "candidate_0", "outcome"} | requests)),
-            Agent("source_auditor", frozenset(common), frozenset(checks)),
-            Agent("repairer", frozenset(common | checks), frozenset((candidates - {"candidate_0"}) | traces)),
+            Agent("controller", frozenset(slots.keys() | families.keys()),
+                  frozenset({"memo", "policy", "origin", "candidate_0", "outcome", "request_"})),
+            Agent("source_auditor", frozenset(common), frozenset({"check_"})),
+            Agent("repairer", frozenset(common | {"check_"}), frozenset({"candidate_", "repair_trace_"})),
         ])
-        self.memory = SharedMemory(path, episode, broker, slots, limits)
+        self.memory = SharedMemory(path, episode, broker, slots, limits, families=families)
         try:
             if self.memory.audit()["event_count"]:
                 self._base()
@@ -68,7 +63,7 @@ class TextConductor:
         self.memory.close()
 
     def begin(self, memo: str, candidate: str, *, origin: dict | None = None):
-        candidate_units(candidate)
+        candidate_units(candidate, self.policy.content_limits)
         policy = self.policy.freeze(memo)
         origin = origin or {"kind": "explicit_host_input"}
         texts = {"memo": memo, "policy": canonical(policy), "origin": canonical(origin), "candidate_0": candidate}
@@ -84,7 +79,7 @@ class TextConductor:
         trace = strict_json(docs["trace"]["text"])
         if trace["revision"] != docs["revision"]["ref"]:
             raise ContractError("Imported trace names a different revision")
-        units = candidate_units(docs["revision"]["text"])
+        units = candidate_units(docs["revision"]["text"], self.policy.content_limits)
         if len(units) != len(trace["output_spans"]):
             raise ContractError("Imported revision unitization mismatch")
         for i, unit in enumerate(units, 1):
@@ -111,7 +106,10 @@ class TextConductor:
 
     def _requests(self):
         names = self.memory.audit()["slots_present"]
-        return [self._artifact(f"request_{i}") for i in range(self.policy.max_calls) if f"request_{i}" in names]
+        requests = sorted((name for name in names if name.startswith("request_")), key=lambda n: int(n[8:]))
+        if requests != [f"request_{i}" for i in range(len(requests))]:
+            raise ContractError("Nonsequential source reservations")
+        return [self._artifact(name) for name in requests]
 
     def _pending(self):
         requests = self._requests()
@@ -147,7 +145,7 @@ class TextConductor:
             return None
         if self._pending():
             raise ContractError("An unresolved reservation blocks redispatch; explicitly hold it")
-        for r in range(self.policy.max_repairs + 1):
+        for r in count():
             check = f"check_{r}"
             if check not in slots:
                 step = ("source_auditor", r)
@@ -159,10 +157,14 @@ class TextConductor:
             if r == self.policy.max_repairs:
                 self._finish("held", "repair_limit", r, check=check)
                 return None
+            if r and self._artifact(f"candidate_{r}")["ref"]["sha256"] in {
+                    self._artifact(f"candidate_{i}")["ref"]["sha256"] for i in range(r)}:
+                self._finish("held", "candidate_cycle", r, check=check)
+                return None
             if f"candidate_{r + 1}" not in slots:
                 step = ("repairer", r + 1)
                 break
-        if len(self._requests()) >= self.policy.max_calls:
+        if self.policy.max_calls is not None and len(self._requests()) >= self.policy.max_calls:
             self._finish("held", "call_budget", r, check=check if check in slots else None)
             return None
         return step
@@ -175,8 +177,8 @@ class TextConductor:
         snapshot = self.memory.snapshot(role, names)
         docs = documents(snapshot)
         memo, candidate = docs["memo"]["text"], docs[candidate_slot]["text"]
-        packet = {"source": {"ref": docs["memo"]["ref"], "units": source_units(memo)},
-                  "candidate": {"ref": docs[candidate_slot]["ref"], "units": candidate_units(candidate)},
+        packet = {"source": {"ref": docs["memo"]["ref"], "units": source_units(memo, self.policy.content_limits)},
+                  "candidate": {"ref": docs[candidate_slot]["ref"], "units": candidate_units(candidate, self.policy.content_limits)},
                   "policy": strict_json(docs["policy"]["text"])}
         blockers = []
         if role == "repairer":
@@ -184,7 +186,7 @@ class TextConductor:
             blockers = packet["assessment"]["blocker_ids"]
         payload = {"role": role, "round": r,
                    "instructions": AUDITOR_INSTRUCTIONS if role == "source_auditor" else REPAIR_INSTRUCTIONS,
-                   "input": packet, "schema": schema(role, memo, candidate, blockers)}
+                   "input": packet, "schema": schema(role, memo, candidate, blockers, self.policy.content_limits)}
         return snapshot, payload
 
     def request(self) -> SourceRequest | None:
@@ -218,7 +220,7 @@ class TextConductor:
         snapshot, payload = self._payload(meta["role"], meta["round"])
         if digest(payload) != meta["payload_sha256"] or digest(request.payload) != meta["payload_sha256"]:
             raise ContractError("Source request payload changed")
-        if not isinstance(content, str) or len(content.encode()) > 64_000:
+        if not isinstance(content, str) or exceeds(len(content.encode()), self.policy.content_limits.max_reply_bytes):
             raise ContractError("Source response byte limit")
         response = strict_json(content)
         docs = documents(snapshot)
@@ -230,7 +232,7 @@ class TextConductor:
             publications = [Publication(f"check_{r}", canonical(assessment), parents)]
         else:
             assessment = strict_json(docs[f"check_{r - 1}"]["text"])
-            text, resolutions = repair(response, assessment["blocker_ids"])
+            text, resolutions = repair(response, assessment["blocker_ids"], self.policy.content_limits)
             ref = ArtifactRef(self.memory.episode, f"candidate_{r}", 1, text_hash(text))
             trace = {"assessment": docs[f"check_{r - 1}"]["ref"], "candidate": ref.to_dict(),
                      "resolutions": resolutions, "effect_status": "unassessed", "requires_source_recheck": True}
@@ -258,7 +260,8 @@ class TextConductor:
             started = clock()
             try:
                 content = worker(request)
-                if clock() - started > request.timeout_s:
+                elapsed = clock() - started
+                if request.timeout_s is not None and elapsed > request.timeout_s:
                     self.hold_pending("late_reply")
                     return self.report()
                 self.submit(request, content)

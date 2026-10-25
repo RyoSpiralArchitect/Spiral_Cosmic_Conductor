@@ -30,3 +30,7 @@ jobs:
         run: |
           python -I -S -B experiments/source_alignment_pilot.py --out runs/source-check
           python -I -S -B experiments/source_alignment_pilot.py --mode replay --replay runs/source-check --out runs/source-check-replay
+      - name: Shared route transmission comparison and replay
+        run: |
+          python -I -S -B experiments/transmission_comparison.py --out runs/transmission-check
+          python -I -S -B experiments/transmission_comparison.py --mode replay --replay runs/transmission-check --out runs/transmission-check-replay

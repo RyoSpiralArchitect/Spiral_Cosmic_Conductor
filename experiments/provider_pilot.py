@@ -71,7 +71,7 @@ class CallBudget:
         self.maximum, self.used = maximum, 0
 
     def reserve(self) -> None:
-        if self.used >= self.maximum:
+        if self.maximum is not None and self.used >= self.maximum:
             raise AdapterError("Experiment HTTP call budget exhausted")
         self.used += 1
 
@@ -107,7 +107,8 @@ class ProviderWorker:
             raise ContractError("Missing credential: " + self.spec.key_env)
         self._opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
 
-    def _transport(self, payload: dict[str, Any], body: bytes, timeout_s: float) -> bytes:
+    def _transport(self, payload: dict[str, Any], body: bytes, timeout_s: float | None, *,
+                   max_response_bytes: int | None = 1_000_000) -> bytes:
         if self.mode == "simulated":
             view = strict_json(payload["messages"][1]["content"])["view"]
             patch = ScriptedWorker("simulation").propose(Dispatch("unused", view, "simulation", "proposer"), 1).patch
@@ -117,8 +118,8 @@ class ProviderWorker:
         request = urllib.request.Request(self.spec.endpoint, data=body, method="POST", headers={
             "Content-Type": "application/json", "Authorization": "Bearer " + self._key})
         with self._opener.open(request, timeout=timeout_s) as response:
-            raw = response.read(1_000_001)
-        if len(raw) > 1_000_000:
+            raw = response.read() if max_response_bytes is None else response.read(max_response_bytes + 1)
+        if max_response_bytes is not None and len(raw) > max_response_bytes:
             raise AdapterError("Response byte limit exceeded")
         return raw
 

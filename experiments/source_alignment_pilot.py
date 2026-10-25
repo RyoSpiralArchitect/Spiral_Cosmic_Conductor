@@ -118,7 +118,7 @@ def run(out: Path, mode="simulated", *, scenario="repair", replay=None, checkpoi
         config["protected_source_ids"] = tuple(config["protected_source_ids"])
         policy = SourcePolicy(**config)
         replay_ticks = strict_json((replay / "timing.json").read_text())["monotonic_ticks"]
-        if (not isinstance(replay_ticks, list) or len(replay_ticks) > 2 * policy.max_calls
+        if (not isinstance(replay_ticks, list) or (policy.max_calls is not None and len(replay_ticks) > 2 * policy.max_calls)
                 or any(type(t) not in (int, float) or not math.isfinite(t) for t in replay_ticks)
                 or replay_ticks != sorted(replay_ticks)):
             raise ContractError("Invalid captured timing data")
