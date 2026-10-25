@@ -5,6 +5,8 @@ The comparison uses the same source memo, teacher, role instructions, model orde
 - Faithful: hand the original conditions and unresolved choices to an implementation colleague; preserve all source units.
 - Emergent: hand a fictional creative seed to another creator; transform the source material explicitly. The supplied case selects explore mode with no protected source units.
 
+The [2026-10-25 live observation](TRANSMISSION_COMPARISON_OBSERVATION_2026_10_25.md) includes the generated text, nine-component counts and source-unit differences. Both cases completed; the source auditor still missed smaller omissions.
+
 Both travel through proposer → critic → reviser → source auditor → repair/recheck when needed. Providers are configured in [the experiment input](../examples/transmission-comparison.json), with Mistral/Gemini/OpenAI for the first three roles and Gemini/OpenAI for checking/repair. There is no case-specific routing branch.
 
 ## No application ceiling in this configuration
