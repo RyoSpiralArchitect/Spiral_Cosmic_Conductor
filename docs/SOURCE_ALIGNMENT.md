@@ -56,6 +56,8 @@ Each round has distinct candidate/check/repair-trace slots, preserving history w
 
 Worker callbacks receive `SourceRequest.timeout_s` and must enforce transport timeouts. The controller discards synchronous replies returned after that interval. It cannot forcibly kill a callback that ignores the timeout. The sample HTTP adapter caps output at 8,192 tokens per call and performs no automatic transport retries.
 
+The pilot seals the controller's monotonic clock readings in `timing.json` and injects those readings on replay. This preserves the decision to discard a late response without sleeping or sending a second request. Older captures must use their captured implementation; timing that was not recorded cannot be reconstructed from a response body.
+
 The Gemini wire schema omits outer row-array length constraints to avoid decoder-state explosion with nested reference arrays. ID enums and the four-reference bound remain in the wire schema; the host still validates exact row coverage against the original logical schema. OpenAI retains its original array constraints. HTTP failures record the status and a fixed error category without retaining arbitrary exception text or provider error bodies. See Google's [schema complexity limitations](https://ai.google.dev/gemini-api/docs/structured-output#limitations).
 
 ## Use with an existing text episode

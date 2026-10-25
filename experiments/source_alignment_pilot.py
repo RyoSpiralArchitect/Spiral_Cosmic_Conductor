@@ -8,11 +8,13 @@ from copy import deepcopy
 from dataclasses import asdict
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import shutil
 import subprocess
 import sys
+import time
 import urllib.error
 import zipfile
 
@@ -102,17 +104,24 @@ def run(out: Path, mode="simulated", *, scenario="repair", replay=None, checkpoi
     secrets = [os.environ[p.key_env].encode() for p in PROVIDERS.values() if os.environ.get(p.key_env)]
     if mode == "live" and any(not os.environ.get(PROVIDERS[p].key_env) for p in ("gemini", "openai")):
         raise ContractError("Missing source pilot credential")
-    recorded = {}
+    recorded, replay_ticks = {}, None
     if mode == "replay":
         if replay is None or checkpoint is not None:
             raise ContractError("Replay needs its own sealed capture")
-        verify_manifest(replay)
+        sealed = verify_manifest(replay)
+        if "timing.json" not in sealed:
+            raise ContractError("Replay needs sealed timing data")
         plan = strict_json((replay / "plan.json").read_text())
         if plan["source_sha256"] != hashes:
             raise ContractError("Replay requires the captured implementation")
         config = dict(plan["policy"])
         config["protected_source_ids"] = tuple(config["protected_source_ids"])
         policy = SourcePolicy(**config)
+        replay_ticks = strict_json((replay / "timing.json").read_text())["monotonic_ticks"]
+        if (not isinstance(replay_ticks, list) or len(replay_ticks) > 2 * policy.max_calls
+                or any(type(t) not in (int, float) or not math.isfinite(t) for t in replay_ticks)
+                or replay_ticks != sorted(replay_ticks)):
+            raise ContractError("Invalid captured timing data")
         fixture = strict_json((replay / "fixture.json").read_text())
         scenario = plan["scenario"]
         for line in (replay / "exchanges.jsonl").read_text().splitlines():
@@ -158,7 +167,17 @@ def run(out: Path, mode="simulated", *, scenario="repair", replay=None, checkpoi
     with zipfile.ZipFile(out / "source.zip", "w", zipfile.ZIP_DEFLATED) as archive:
         for path in source_paths:
             archive.write(path, str(path.relative_to(REPO)))
-    exchanges, matched = [], []
+    exchanges, matched, ticks = [], [], []
+
+    def clock():
+        if replay_ticks is None:
+            value = time.monotonic()
+        else:
+            if len(ticks) >= len(replay_ticks):
+                raise ContractError("Replay timing exhausted")
+            value = replay_ticks[len(ticks)]
+        ticks.append(value)
+        return value
 
     def worker(request):
         provider = "gemini" if request.payload["role"] == "source_auditor" else "openai"
@@ -226,7 +245,7 @@ def run(out: Path, mode="simulated", *, scenario="repair", replay=None, checkpoi
     try:
         with TextConductor(db, "source_pilot", policy) as conductor:
             try:
-                report = conductor.run(worker)
+                report = conductor.run(worker, clock=clock)
             finally:
                 report = conductor.report()
                 write_json(out / "report.json", report)
@@ -236,12 +255,15 @@ def run(out: Path, mode="simulated", *, scenario="repair", replay=None, checkpoi
                     suffix = ".md" if slot == "memo" or slot.startswith("candidate_") else ".json"
                     (out / (slot + suffix)).write_text(artifact["text"], encoding="utf-8")
         if mode == "replay":
+            if ticks != replay_ticks:
+                raise ContractError("Replay timing differs")
             if set(matched) != set(recorded) or exchanges != list(recorded.values()):
                 raise ContractError("Replay exchanges differ")
             if report != strict_json((replay / "report.json").read_text()):
                 raise ContractError("Replay public outcome differs")
         return report
     finally:
+        write_json(out / "timing.json", {"monotonic_ticks": ticks})
         write_json(out / "summary.json", {"mode": mode, "live_api_calls": len(exchanges) if mode == "live" else 0,
                    "call_attempts": len(exchanges), "matched_replay_calls": matched,
                    "known_usage": {k: sum(r["usage"][k] or 0 for r in exchanges) for k in ("prompt_tokens", "completion_tokens")},

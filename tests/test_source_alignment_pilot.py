@@ -104,6 +104,29 @@ class SourceAlignmentPilotTests(unittest.TestCase):
             replay = run(root / "replay", "replay", replay=root / "failed")
             self.assertEqual(result, replay)
 
+    def test_late_reply_replays_the_hold_without_dispatching_a_second_call(self):
+        with tempfile.TemporaryDirectory() as tmp, patch("experiments.provider_pilot.ProviderWorker._transport", side_effect=AssertionError("No network")):
+            root = Path(tmp)
+            with patch("experiments.source_alignment_pilot.time.monotonic", side_effect=[0, 61]):
+                result = run(root / "late")
+            self.assertEqual(result["reason"], "late_reply")
+            self.assertEqual(result["calls_used"], 1)
+            self.assertIsNone(result["result_text"])
+            replay = run(root / "replay", "replay", replay=root / "late")
+            self.assertEqual(result, replay)
+            self.assertFalse((root / "replay/request_1.request.json").exists())
+            self.assertEqual((root / "late/timing.json").read_bytes(), (root / "replay/timing.json").read_bytes())
+
+    def test_unsealed_timing_data_is_rejected_before_replay(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run(root / "sim")
+            manifest = json.loads((root / "sim/manifest.json").read_text())
+            manifest["sha256"].pop("timing.json")
+            (root / "sim/manifest.json").write_text(canonical(manifest))
+            with self.assertRaisesRegex(ContractError, "sealed timing"):
+                run(root / "replay", "replay", replay=root / "sim")
+
     def test_changed_capture_is_rejected_before_replay(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

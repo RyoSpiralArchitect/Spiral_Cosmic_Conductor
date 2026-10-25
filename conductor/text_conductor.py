@@ -248,16 +248,17 @@ class TextConductor:
         check = f"check_{r}" if f"check_{r}" in self.memory.audit()["slots_present"] else None
         self._finish("held", reason, r, check=check, pending=pending["ref"]["id"])
 
-    def run(self, worker):
-        """worker(request) returns JSON text. Reservations survive interruptions."""
+    def run(self, worker, *, clock=None):
+        """Run with a monotonic clock, optionally recorded/injected for replay."""
+        clock = time.monotonic if clock is None else clock
         while True:
             request = self.request()
             if request is None:
                 return self.report()
-            started = time.monotonic()
+            started = clock()
             try:
                 content = worker(request)
-                if time.monotonic() - started > request.timeout_s:
+                if clock() - started > request.timeout_s:
                     self.hold_pending("late_reply")
                     return self.report()
                 self.submit(request, content)
