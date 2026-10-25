@@ -23,6 +23,8 @@ flowchart LR
 
 The model supplies semantic judgments. The controller does **not** prove that they are correct. Complete row coverage can still miss a clause inside a unit; source units follow the existing Japanese punctuation rule, while candidate units are nonempty lines. An assessor that incorrectly labels all rows as preserved/compatible can still produce a bad candidate that passes this gate. Evaluate that detector separately from the control mechanism.
 
+The [first live observation](observations/SOURCE_ALIGNMENT_2026-10-25.md) records an unchanged repair, missed cross-unit ambiguities, and a held recheck whose reasons exceeded the host bound. It includes raw generations and explicit API accounting.
+
 ## Policy and permissible additions
 
 `SourcePolicy()` uses `mode="preserve"` and protects all source units. This is the conservative default for constrained or ambiguous tasks. No automatic task classifier is shipped. A model's classification or response cannot lower the policy.

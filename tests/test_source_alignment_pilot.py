@@ -15,6 +15,20 @@ from experiments.source_alignment_pilot import FIXTURE, envelope, run
 
 
 class SourceAlignmentPilotTests(unittest.TestCase):
+    def test_live_observation_rejects_overlong_recheck_without_exposing_result(self):
+        receipt = json.loads((FIXTURE.parents[2] / "examples/observations/source-alignment-2026-10-25.json").read_text())
+        responses = {row["exchange"]["request_slot"]: row["response"] for row in receipt["post_fix_exchanges"]}
+        with tempfile.TemporaryDirectory() as tmp, patch("experiments.provider_pilot.ProviderWorker._transport", side_effect=AssertionError("No network")):
+            root = Path(tmp)
+            result = run(root / "captured", transport=lambda request, *_: canonical(responses[request.slot]).encode())
+            self.assertEqual(result["state"], "held")
+            self.assertEqual(result["reason"], "worker_failed:ContractError")
+            self.assertEqual(result["calls_used"], 3)
+            self.assertIsNone(result["result_text"])
+            self.assertNotIn("check_1", result["audit"]["slots_present"])
+            self.assertEqual((root / "captured/candidate_0.md").read_bytes(), (root / "captured/candidate_1.md").read_bytes())
+            self.assertEqual(result, run(root / "replay", "replay", replay=root / "captured"))
+
     def test_gemini_wire_bounds_do_not_weaken_host_coverage(self):
         fixture = json.loads(FIXTURE.read_text())
         with tempfile.TemporaryDirectory() as tmp, TextConductor(Path(tmp) / "memory.sqlite", "test") as conductor:
