@@ -1,18 +1,54 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (c) 2026 Ryo Higa / SpiralReality
 import json
+import io
 from pathlib import Path
 import tempfile
 import unittest
+import urllib.error
 from unittest.mock import patch
 
 from conductor.text_conductor import TextConductor
 from conductor.text_workflow import abstract_teacher, open_text_memory, seed, accept
 from conductor.types import ContractError, canonical
-from experiments.source_alignment_pilot import FIXTURE, run
+from experiments.source_alignment_pilot import FIXTURE, envelope, run
 
 
 class SourceAlignmentPilotTests(unittest.TestCase):
+    def test_gemini_wire_bounds_do_not_weaken_host_coverage(self):
+        fixture = json.loads(FIXTURE.read_text())
+        with tempfile.TemporaryDirectory() as tmp, TextConductor(Path(tmp) / "memory.sqlite", "test") as conductor:
+            conductor.begin(fixture["memo"], fixture["candidate"])
+            request = conductor.request()
+            original = canonical(request.payload)
+            wire = envelope(request, "gemini")["response_format"]["json_schema"]["schema"]
+            self.assertNotIn("maxItems", wire["properties"]["sources"])
+            refs = wire["properties"]["sources"]["items"]["properties"]["candidate_ids"]
+            self.assertEqual(refs["maxItems"], 4)
+            self.assertEqual(refs["items"]["enum"][0], "C01")
+            self.assertEqual(canonical(request.payload), original)
+            bad = fixture["before_assessment"]
+            bad["sources"].pop()
+            with self.assertRaises(ContractError):
+                conductor.submit(request, canonical(bad))
+            self.assertEqual(conductor.report()["state"], "in_flight")
+
+    def test_http_schema_error_is_safe_and_replayable(self):
+        def fail(*args):
+            body = b'[{"error":{"message":"The schema has too many states. UNTRUSTED_SECRET"}}]'
+            raise urllib.error.HTTPError("https://invalid.test/UNTRUSTED_SECRET", 400,
+                                         "UNTRUSTED_SECRET", {}, io.BytesIO(body))
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = run(root / "failed", transport=fail)
+            exchange = (root / "failed/exchanges.jsonl").read_text()
+            self.assertNotIn("UNTRUSTED_SECRET", exchange)
+            row = json.loads(exchange)
+            self.assertEqual(row["http_status"], 400)
+            self.assertEqual(row["provider_error_kind"], "schema_complexity")
+            self.assertEqual(result["calls_used"], 1)
+            self.assertEqual(result, run(root / "replay", "replay", replay=root / "failed"))
+
     def test_captured_candidate_fixture_routes_and_replays_without_network(self):
         with tempfile.TemporaryDirectory() as tmp, patch("experiments.provider_pilot.ProviderWorker._transport", side_effect=AssertionError("No network")):
             root = Path(tmp)

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 from dataclasses import asdict
 import hashlib
 import json
@@ -12,6 +13,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import urllib.error
 import zipfile
 
 REPO = Path(__file__).resolve().parents[1]
@@ -29,16 +31,42 @@ MAX_TOKENS = 8192
 
 
 def envelope(request, provider):
+    wire_schema = deepcopy(request.payload["schema"])
+    # Gemini expands bounded outer arrays of objects containing bounded arrays
+    # into too many decoder states. Keep nested reference bounds and ID enums;
+    # the host still requires every source/candidate row exactly once.
+    if provider == "gemini":
+        for field in wire_schema["properties"].values():
+            if field.get("type") == "array":
+                field.pop("minItems", None)
+                field.pop("maxItems", None)
     result = {"model": PROVIDERS[provider].model, "stream": False, "temperature": 0,
               "messages": [{"role": "system", "content": request.payload["instructions"]},
                            {"role": "user", "content": canonical(request.payload["input"])}],
               "response_format": {"type": "json_schema", "json_schema": {
-                  "name": request.payload["role"], "strict": True, "schema": request.payload["schema"]}}}
+                  "name": request.payload["role"], "strict": True, "schema": wire_schema}}}
     result["max_completion_tokens" if provider == "openai" else "max_tokens"] = MAX_TOKENS
     if provider == "openai":
         result["store"] = False
     else:
         result["reasoning_effort"] = "none"
+    return result
+
+
+def transport_failure(exc):
+    """Keep safe HTTP diagnostics, never exception text or provider bodies."""
+    result = {"status": "transport_failed", "error_type": type(exc).__name__}
+    if isinstance(exc, urllib.error.HTTPError):
+        result["http_status"] = exc.code
+        result["provider_error_kind"] = "http_error"
+        try:
+            body = exc.read(16_384).lower()
+            if b"schema" in body and b"too many states" in body:
+                result["provider_error_kind"] = "schema_complexity"
+        except Exception:
+            pass  # Missing diagnostic data must not hide the original failure.
+        finally:
+            exc.close()
     return result
 
 
@@ -151,20 +179,23 @@ def run(out: Path, mode="simulated", *, scenario="repair", replay=None, checkpoi
                 response_path = replay / (name + ".response.json")
                 if not response_path.exists():
                     row.update(status="transport_failed", error_type=saved["error_type"])
+                    for key in ("http_status", "provider_error_kind"):
+                        if key in saved:
+                            row[key] = saved[key]
                     raise AdapterError("Captured transport failure")
                 raw = response_path.read_bytes()
             elif transport is not None:
                 try:
                     raw = transport(request, payload, body)
                 except Exception as exc:
-                    row.update(status="transport_failed", error_type=type(exc).__name__)
+                    row.update(transport_failure(exc))
                     raise AdapterError("Transport failed") from None
             elif mode == "live":
                 live = ProviderWorker(provider, "careful", "live", CallBudget(policy.max_calls), lambda _: None)
                 try:
                     raw = live._transport(payload, body, request.timeout_s)
                 except Exception as exc:
-                    row.update(status="transport_failed", error_type=type(exc).__name__)
+                    row.update(transport_failure(exc))
                     raise AdapterError("Transport failed") from None
             else:
                 raw = simulated(request, fixture, scenario)
