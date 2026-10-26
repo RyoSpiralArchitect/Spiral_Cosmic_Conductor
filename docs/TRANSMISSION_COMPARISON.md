@@ -7,6 +7,8 @@ The comparison uses the same source memo, teacher, role instructions, model orde
 
 The [2026-10-25 live observation](TRANSMISSION_COMPARISON_OBSERVATION_2026_10_25.md) includes the generated text, nine-component counts and source-unit differences. Both cases completed; the source auditor still missed smaller omissions.
 
+The follow-up [emergence probe](EMERGENCE_PROBE.md) forks the same recorded draft, varies review guidance and traces how a subsequent creator uses each result, with observer judgments kept out of generation.
+
 Both travel through proposer → critic → reviser → source auditor → repair/recheck when needed. Providers are configured in [the experiment input](../examples/transmission-comparison.json), with Mistral/Gemini/OpenAI for the first three roles and Gemini/OpenAI for checking/repair. There is no case-specific routing branch.
 
 ## No application ceiling in this configuration
