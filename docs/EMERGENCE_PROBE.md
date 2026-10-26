@@ -39,4 +39,6 @@ The capture retains input configuration, seed receipt, raw requests/responses, r
 
 The two arms run sequentially, with one sample each. Compare visible transformations and their later use; do not interpret a higher novelty count as better work or as an estimated causal effect of guidance. A concrete next scene is itself requested by the common continuation prompt, so producing a scene alone is not evidence of spontaneous emergence.
 
+The [2026-10-27 observation](EMERGENCE_OBSERVATION_2026_10_27.md) preserves both the HTTP 402 run and the subsequent explicit two-provider run, including the held arm, rejected observer annotations, exact text trajectories and replay checks.
+
 An explicit [two-provider configuration](../examples/emergence-probe-two-provider.json) uses Mistral for critique/source audit and OpenAI for revision/observation, with the same Mistral continuation. It was prepared after the 2026-10-27 Gemini generation calls returned HTTP 402; all three model catalogs remained readable. It is a separate provider configuration, not an implicit retry or an unchanged replication of the Gemini route. Neither variant has an independent evaluator model.
