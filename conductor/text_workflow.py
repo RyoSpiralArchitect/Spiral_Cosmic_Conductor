@@ -79,21 +79,29 @@ def abstract_teacher() -> dict[str, Any]:
 
 
 def open_text_memory(path: Path, episode: str, limits: MemoryLimits | None = None, *,
-                     text_limits: TextLimits | None = None, task_brief: bool = False) -> SharedMemory:
+                     text_limits: TextLimits | None = None, task_brief: bool = False,
+                     review_guidance: bool = False) -> SharedMemory:
     extra = {"task_brief"} if task_brief else set()
-    slots = {**SLOTS, **({"task_brief": "guidance"} if task_brief else {})}
-    agents = [Agent("controller", frozenset(slots), frozenset({"memo", "principles"} | extra))]
-    agents += [Agent(name, frozenset(reads | WRITES[name] | extra), frozenset(WRITES[name])) for name, reads in READS.items()]
+    review_extra = {"review_guidance"} if review_guidance else set()
+    slots = {**SLOTS, **{name: "guidance" for name in extra | review_extra}}
+    agents = [Agent("controller", frozenset(slots), frozenset({"memo", "principles"} | extra | review_extra))]
+    agents += [Agent(name, frozenset(reads | WRITES[name] | extra | (review_extra if name != "proposer" else set())),
+                     frozenset(WRITES[name])) for name, reads in READS.items()]
     metadata = {"text_limits": asdict(text_limits)} if text_limits is not None else None
     return SharedMemory(path, episode, MultipolarBroker(agents), slots, limits, metadata=metadata)
 
 
-def seed(memory: SharedMemory, memo: str, *, task_brief: dict | None = None) -> None:
+def seed(memory: SharedMemory, memo: str, *, task_brief: dict | None = None,
+         review_guidance: dict | None = None) -> None:
     if ("task_brief" in memory.slots) != (task_brief is not None):
         raise ContractError("Task brief does not match the memory contract")
     publications = [Publication("principles", canonical(abstract_teacher())), Publication("memo", memo)]
     if task_brief is not None:
         publications.append(Publication("task_brief", canonical(task_brief)))
+    if ("review_guidance" in memory.slots) != (review_guidance is not None):
+        raise ContractError("Review guidance does not match the memory contract")
+    if review_guidance is not None:
+        publications.append(Publication("review_guidance", canonical(review_guidance)))
     memory.commit("controller", publications, expected_revision=0)
 
 
@@ -113,6 +121,8 @@ def view(memory: SharedMemory, stage: str) -> dict[str, Any]:
     if stage not in READS:
         raise ContractError("Unknown text stage")
     reads = READS[stage] | ({"task_brief"} if "task_brief" in memory.slots else set())
+    if stage != "proposer" and "review_guidance" in memory.slots:
+        reads = reads | {"review_guidance"}
     if not memory.broker.authorize_dispatch(stage, read_ids=reads, write_ids=WRITES[stage]):
         raise ContractError("Broker refused text dispatch")
     result = memory.snapshot(stage, reads)

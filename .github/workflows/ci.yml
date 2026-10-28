@@ -34,3 +34,7 @@ jobs:
         run: |
           python -I -S -B experiments/transmission_comparison.py --out runs/transmission-check
           python -I -S -B experiments/transmission_comparison.py --mode replay --replay runs/transmission-check --out runs/transmission-check-replay
+      - name: Emergence boundary probe and replay
+        run: |
+          python -I -S -B experiments/emergence_probe.py --out runs/emergence-check
+          python -I -S -B experiments/emergence_probe.py --mode replay --replay runs/emergence-check --out runs/emergence-check-replay
