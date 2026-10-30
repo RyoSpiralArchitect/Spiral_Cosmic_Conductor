@@ -8,6 +8,8 @@ A small, executable research nucleus for coordinating **separate reasoning agent
 
 ## First run
 
+For a paired faithful/emergent handoff through the same text route, see [transmission comparison](docs/TRANSMISSION_COMPARISON.md). Its configuration leaves application length, reference, memory, token, timeout, and repair-count ceilings unset. It records full generations, declared sentence links, source judgments, and provider failures.
+
 ```bash
 python3 -m conductor cosmic-demo --out runs/first
 python3 -m conductor audit runs/first

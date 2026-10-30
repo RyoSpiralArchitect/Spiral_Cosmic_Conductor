@@ -1,0 +1,37 @@
+{
+  "schema": "emergence_probe.v1",
+  "seed_receipt": "observations/transmission-comparison-2026-10-25.json",
+  "seed_receipt_sha256": "b78345f4d7812801626e6edddf6527b7c28d4d0c1214285a4fab4bd1f54b5f59",
+  "seed_case": "emergent",
+  "routing": {
+    "proposer": "mistral",
+    "critic": "mistral",
+    "reviser": "openai",
+    "source_auditor": "mistral",
+    "repairer": "openai",
+    "continuator": "mistral",
+    "observer": "openai"
+  },
+  "generation": {
+    "temperature": 0,
+    "max_output_tokens": null,
+    "timeout_s": null,
+    "max_response_bytes": null
+  },
+  "arms": [
+    {
+      "id": "original",
+      "review_guidance": {
+        "mode": "unchanged",
+        "instruction": "既存のprinciplesとtask_briefをそのまま参照し、通常の批評と改稿を行う。"
+      }
+    },
+    {
+      "id": "purpose_aware",
+      "review_guidance": {
+        "mode": "task_aware",
+        "instruction": "評価する目的はtask_briefに書かれた伝達目的。原文への忠実さが要求された時は条件と未確定性を保持する。創作的な変形が許された範囲では、原文との差や比喩の存在だけで悪いと判定しない。具体的な架空の関係・展開と、現実の事実や効果の主張を区別する。新規性を無条件に加点せず、次の創作者が使える関係か、単なる装飾か、判断できないかを吟味する。原文由来・変形・追加を区別し、禁止された境界を変えない。保持・追加・欠落という変化と、positive・negative・neutralという評価を別々に扱う。"
+      }
+    }
+  ]
+}

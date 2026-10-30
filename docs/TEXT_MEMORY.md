@@ -4,6 +4,8 @@ The structured runtime verifies supplied arithmetic/logical tasks. Free text nee
 
 This implementation connects a proposer, critic, and reviser through one small SQLite database per episode. It stores only explicitly published artifacts. It does not merge agents' private contexts, retrieve old answers, train weights, or search an unrestricted memory pool.
 
+The limits described below are the historical default profile. `TextLimits` and `MemoryLimits` now accept explicit values or null; the [paired comparison](TRANSMISSION_COMPARISON.md) unsets application ceilings. An optional public `task_brief` carries the episode's objective separately from the unchanged abstract teacher. Content limits are frozen into the database contract, and every role uses the same schema/validation implementation.
+
 ## Teacher versus episode state
 
 The abstract teacher is a pure, argument-free function in conductor/text_workflow.py. It supplies six principles with desirable, undesirable, and neutral behaviors:

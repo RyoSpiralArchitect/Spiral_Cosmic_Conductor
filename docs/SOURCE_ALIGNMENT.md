@@ -52,7 +52,7 @@ Every repair must address, hold, or dispute each blocker and cite real units for
 
 ## Durable bounded control
 
-Default bounds are one repair and three call attempts: compare → repair → compare. Up to two repairs and five calls can be configured explicitly. Each call is reserved in SQLite before invoking a worker; errors and interruptions consume that reservation. An unresolved reservation blocks redispatch after restart. `hold_pending()` explicitly closes it; the runtime never retries a hidden in-flight request.
+The historical default remains one repair and three calls. Limits are configurable positive values or null (unset), without a second hard-coded ceiling. `SourcePolicy.unbounded()` unsets call, repair, timeout, and source-content ceilings; combine it with `MemoryLimits.unbounded()` and an uncapped transport as in [transmission comparison](TRANSMISSION_COMPARISON.md). Numbered artifact families allocate rounds as needed. After mandatory rechecking, a still-blocked candidate whose exact bytes recur ends as `held / candidate_cycle`; this is an observed cycle, not a round quota. Each call is reserved in SQLite before invoking a worker; errors and interruptions consume that reservation. An unresolved reservation blocks redispatch after restart. `hold_pending()` explicitly closes it; the runtime never retries a hidden in-flight request.
 
 Each round has distinct candidate/check/repair-trace slots, preserving history without cyclic dependencies. Candidate and repair trace commit atomically. An exhausted call budget cannot release a repaired candidate that has not been rechecked. Source/policy edits and stale replies fail closed. The host is trusted Python code; these scopes are not an operating-system sandbox.
 

@@ -27,17 +27,23 @@ def text_hash(text: str) -> str:
 
 @dataclass(frozen=True)
 class MemoryLimits:
-    max_events: int = 64
-    max_artifact_chars: int = 16_000
-    max_storage_bytes: int = 1_000_000
-    max_view_chars: int = 32_000
+    max_events: int | None = 64
+    max_artifact_chars: int | None = 16_000
+    max_storage_bytes: int | None = 1_000_000
+    max_view_chars: int | None = 32_000
 
     def __post_init__(self) -> None:
-        for name, ceiling in (("max_events", 1024), ("max_artifact_chars", 100_000),
-                              ("max_storage_bytes", 10_000_000), ("max_view_chars", 128_000)):
-            value = getattr(self, name)
-            if type(value) is not int or not 0 < value <= ceiling:
+        for value in asdict(self).values():
+            if value is not None and (type(value) is not int or value <= 0):
                 raise ContractError("Invalid memory limit")
+
+    @classmethod
+    def unbounded(cls):
+        return cls(**{name: None for name in cls.__dataclass_fields__})
+
+
+def exceeds(value, maximum):
+    return maximum is not None and value > maximum
 
 
 @dataclass(frozen=True)
@@ -80,26 +86,34 @@ class SharedMemory:
     """
 
     def __init__(self, path: Path, episode: str, broker: MultipolarBroker,
-                 slots: dict[str, str], limits: MemoryLimits | None = None):
+                 slots: dict[str, str], limits: MemoryLimits | None = None, *,
+                 families: dict[str, str] | None = None, metadata: dict | None = None):
         check_id(episode)
-        if not slots or len(slots) > 32:
-            raise ContractError("Expected 1..32 public artifact slots")
-        for name, kind in slots.items():
+        self.families = dict(families or {})
+        if not slots or set(slots) & set(self.families):
+            raise ContractError("Invalid public artifact slots")
+        for name, kind in {**slots, **self.families}.items():
             check_id(name)
             if kind not in KINDS:
                 raise ContractError("Invalid public artifact kind")
+        if any(not name.endswith("_") for name in self.families):
+            raise ContractError("Numbered slot families need an underscore suffix")
         if not broker.agents:
             raise ContractError("Memory needs registered agents")
         self.episode, self.broker = episode, broker
         self.slots, self.agents = dict(slots), dict(broker.agents)
         self.limits = limits or MemoryLimits()
         for a in self.agents.values():
-            if not (a.readable | a.writable) <= self.slots.keys():
+            if not (a.readable | a.writable) <= self.slots.keys() | self.families.keys():
                 raise ContractError("Agent scope outside memory contract")
         self.contract = {"schema": "public_memory.v1", "episode": episode, "slots": self.slots,
                          "limits": asdict(self.limits), "agents": {
                              k: {"readable": sorted(a.readable), "writable": sorted(a.writable)}
                              for k, a in sorted(self.agents.items())}}
+        if self.families:
+            self.contract.update(schema="public_memory.v2", families=self.families)
+        if metadata is not None:
+            self.contract["metadata"] = strict_json(canonical(metadata))
         self._db = sqlite3.connect(path, timeout=5, isolation_level=None)
         try:
             self._db.execute("BEGIN IMMEDIATE")
@@ -129,8 +143,23 @@ class SharedMemory:
     def _authorized(self, actor: str, reads: set[str], writes: set[str]) -> None:
         check_id(actor)
         agent = self.agents.get(actor)
-        if agent is None or not reads <= agent.readable or not writes <= agent.writable:
+        if (agent is None or not {self._scope(s) for s in reads} <= agent.readable
+                or not {self._scope(s) for s in writes} <= agent.writable):
             raise ContractError("Public memory scope denied")
+
+    def _scope(self, name):
+        check_id(name)
+        if name in self.slots:
+            return name
+        matches = [prefix for prefix in self.families
+                   if re.fullmatch(re.escape(prefix) + r"(?:0|[1-9][0-9]*)", name)]
+        if len(matches) != 1:
+            raise ContractError("Unknown or ambiguous public slot")
+        return matches[0]
+
+    def _kind(self, name):
+        scope = self._scope(name)
+        return self.slots[scope] if scope in self.slots else self.families[scope]
 
     @staticmethod
     def _fresh(artifact: dict[str, Any], heads: dict[str, Any], history: dict[ArtifactRef, Any]) -> bool:
@@ -148,24 +177,24 @@ class SharedMemory:
         return True
 
     def _apply(self, actor: str, artifacts: Any, heads: dict, history: dict) -> None:
-        if not isinstance(artifacts, list) or not 1 <= len(artifacts) <= 4:
-            raise ContractError("Expected 1..4 publications")
+        if not isinstance(artifacts, list) or not artifacts:
+            raise ContractError("Expected publications")
         ids: set[str] = set()
         for artifact in artifacts:
             exact_keys(artifact, {"ref", "kind", "text", "parents", "author", "semantic_status"})
             ref = ArtifactRef.from_dict(artifact["ref"])
             text = artifact["text"]
-            if (ref.episode != self.episode or ref.id not in self.slots or ref.id in ids
-                    or artifact["kind"] != self.slots[ref.id] or artifact["author"] != actor
+            if (ref.episode != self.episode or ref.id in ids
+                    or artifact["kind"] != self._kind(ref.id) or artifact["author"] != actor
                     or artifact["semantic_status"] != "unassessed"
-                    or not isinstance(text, str) or not text.strip() or len(text) > self.limits.max_artifact_chars
+                    or not isinstance(text, str) or not text.strip() or exceeds(len(text), self.limits.max_artifact_chars)
                     or ref.sha256 != text_hash(text)):
                 raise ContractError("Invalid publication")
             expected = heads[ref.id]["ref"]["version"] + 1 if ref.id in heads else 1
             if ref.version != expected:
                 raise ContractError("Nonsequential artifact version")
             parents = artifact["parents"]
-            if not isinstance(parents, list) or len(parents) > 8:
+            if not isinstance(parents, list):
                 raise ContractError("Invalid parent references")
             parsed = [ArtifactRef.from_dict(p) for p in parents]
             if len(set(parsed)) != len(parsed):
@@ -189,7 +218,7 @@ class SharedMemory:
         if saved is None or saved[0] != canonical(self.contract):
             raise ContractError("Episode or memory contract mismatch")
         count, size = self._db.execute("SELECT count(*), coalesce(sum(length(cast(body AS BLOB))),0) FROM memory_events").fetchone()
-        if count > self.limits.max_events or size > self.limits.max_storage_bytes:
+        if exceeds(count, self.limits.max_events) or exceeds(size, self.limits.max_storage_bytes):
             raise ContractError("Memory storage budget exceeded")
         events, heads, history = [], {}, {}
         for index, (seq, body) in enumerate(self._db.execute("SELECT seq,body FROM memory_events ORDER BY seq"), 1):
@@ -207,28 +236,29 @@ class SharedMemory:
     def commit(self, actor: str, publications: list[Publication], *, expected_revision: int) -> list[dict]:
         if type(expected_revision) is not int or expected_revision < 0:
             raise ContractError("Invalid expected revision")
-        if not isinstance(publications, list) or not 1 <= len(publications) <= 4:
-            raise ContractError("Expected 1..4 publications")
+        if not isinstance(publications, list) or not publications:
+            raise ContractError("Expected publications")
         self._db.execute("BEGIN IMMEDIATE")
         try:
             events, heads, history = self._load()
             if len(events) != expected_revision:
                 raise ContractError("Stale memory snapshot")
-            if len(events) >= self.limits.max_events:
+            if exceeds(len(events) + 1, self.limits.max_events):
                 raise ContractError("Memory event budget exceeded")
             reads = {ref.id for p in publications for ref in p.parents}
             writes = {p.id for p in publications}
             self._authorized(actor, reads, writes)
-            if not self.broker.authorize_dispatch(actor, read_ids=reads, write_ids=writes):
+            if not self.broker.authorize_dispatch(actor, read_ids={self._scope(s) for s in reads},
+                                                  write_ids={self._scope(s) for s in writes}):
                 raise ContractError("Broker refused publication")
             artifacts = []
             for p in publications:
                 check_id(p.id)
-                if p.id not in self.slots or not isinstance(p.text, str):
+                if not isinstance(p.text, str):
                     raise ContractError("Unknown publication slot or invalid text")
                 version = heads[p.id]["ref"]["version"] + 1 if p.id in heads else 1
                 ref = ArtifactRef(self.episode, p.id, version, text_hash(p.text))
-                artifacts.append({"ref": ref.to_dict(), "text": p.text, "kind": self.slots[p.id],
+                artifacts.append({"ref": ref.to_dict(), "text": p.text, "kind": self._kind(p.id),
                                   "parents": [v.to_dict() for v in p.parents], "author": actor,
                                   "semantic_status": "unassessed"})
             # Validation uses detached projections; a failed batch leaves no rows.
@@ -239,7 +269,7 @@ class SharedMemory:
             body = canonical(event)
             saved_size = self._db.execute("SELECT coalesce(sum(length(cast(body AS BLOB))),0) FROM memory_events").fetchone()[0]
             size = saved_size + len(body.encode())
-            if size > self.limits.max_storage_bytes:
+            if exceeds(size, self.limits.max_storage_bytes):
                 raise ContractError("Memory storage budget exceeded")
             self._db.execute("INSERT INTO memory_events VALUES (?, ?)", (event["seq"], body))
             self._db.execute("COMMIT")
@@ -263,7 +293,7 @@ class SharedMemory:
         view = {"episode": self.episode, "revision": len(events), "artifacts": artifacts,
                 "private_context_exported": False, "semantic_status": "unassessed"}
         encoded = canonical(view)
-        if len(encoded) > self.limits.max_view_chars:
+        if exceeds(len(encoded), self.limits.max_view_chars):
             raise ContractError("Memory view budget exceeded; select fewer artifacts")
         return strict_json(encoded)
 

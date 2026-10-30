@@ -1,0 +1,62 @@
+{
+  "schema": "transmission_comparison.v1",
+  "source_memo": "来月、共有の道具棚の貸出手順を45分だけ試したい。利用者は最大7人、進行役は1人で、追加の係は頼めない。準備費は2,400円以内。試す道具の種類と点数はまだ決まっていない。\n水曜午後なら部屋が使えるかもしれないが、土曜にしか来られない人もおり、日程と利用許可は未確定。スマートフォンを持たない人でも参加できるようにしたい。氏名・連絡先の収集や写真撮影は行わず、登録サービスの利用も前提にしない。\n貸出や返却で迷った点が、次の手順案のどこを変えたかを追いたい。貸す側と借りる側の意見が合わなくても、その場で一本化する必要はない。準備が整わなければ模擬カードで手順だけ試す案も考えているが、これはまだ選択肢。\n",
+  "routing": {
+    "proposer": "mistral",
+    "critic": "gemini",
+    "reviser": "openai",
+    "source_auditor": "gemini",
+    "repairer": "openai"
+  },
+  "generation": {
+    "temperature": 0,
+    "max_output_tokens": null,
+    "timeout_s": null,
+    "max_response_bytes": null
+  },
+  "memory_limits": {
+    "max_events": null,
+    "max_artifact_chars": null,
+    "max_storage_bytes": null,
+    "max_view_chars": null
+  },
+  "text_limits": {
+    "max_units": null,
+    "max_unit_chars": null,
+    "max_reason_chars": null,
+    "max_description_chars": null,
+    "max_references": null,
+    "max_output_references": null,
+    "max_elements": null
+  },
+  "source_policy": {
+    "mode": "preserve",
+    "protected_source_ids": [],
+    "max_repairs": null,
+    "max_calls": null,
+    "call_timeout_s": null,
+    "content_limits": {
+      "max_units": null,
+      "max_unit_chars": null,
+      "max_reason_chars": null,
+      "max_references": null,
+      "max_reply_bytes": null
+    }
+  },
+  "cases": [
+    {
+      "id": "faithful",
+      "intent": "faithful_handoff",
+      "instruction": "次の実施担当者へ渡す引き継ぎ案を作る。原文の条件・未確定性・選択肢を保持し、未確定事項を勝手に決定しない。原文にない具体案は追加と明示する。受け手が何を引き継ぎ、どこを判断するかが分かる文章にする。",
+      "source_mode": "preserve",
+      "protected_source_ids": []
+    },
+    {
+      "id": "emergent",
+      "intent": "emergent_handoff",
+      "instruction": "このメモを素材として、次の創作者へ渡す物語や世界観の種を作る。道具棚・貸し借り・参加者・予算・時間・未確定性などは創作的に変形してよい。原文の語句や数値の保持を義務にせず、どこから何を発想したか、どこが追加や変形か、次の創作者に何を開いて渡すかを明示する。架空の創作を現実の実施計画や決定事項として扱わない。",
+      "source_mode": "explore",
+      "protected_source_ids": []
+    }
+  ]
+}
