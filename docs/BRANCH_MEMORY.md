@@ -36,21 +36,33 @@ remain assessments, and condition satisfaction is not automatically inferred.
 `fork_from_reflux` consumes a productive-difference plan once and requires its
 target output to appear in the parent branch. No repair call is reserved.
 
-`open_round(branch, selected_nodes, ...)` projects only the explicitly selected
-nodes and their primary content refs into a new Breath/Duet round. Unselected
-nodes and other branches are not automatically sent. Same-episode public refs
-are required. Cross-episode retrieval/import is intentionally not implemented.
+`open_round(branch, selected_nodes, ...)` projects the explicitly selected nodes,
+their primary content refs, and the latest public assessments/evidence of their
+named `reopen_on` conditions into a new Breath/Duet round. Unknown/unsatisfied
+revocations are included as such. Only selected nodes' conditions are added;
+unrelated conditions, superseded assessments, unselected nodes and whole branches
+are not automatically sent. A host can explicitly select a held node, but this
+does not change its disposition or assert that its conditions are satisfied.
 
-The convenience import `conductor.intervention` exposes DuetSession,
-BreathController, RefluxController, Finding and BranchMemory. It does not activate
-these mechanisms in existing CLI commands or observation experiments.
+Same-episode public refs are required. Cross-episode retrieval/import is
+intentionally not implemented. The convenience import `conductor.intervention`
+exposes the four APIs without activating existing CLI commands or observation
+experiments.
 
 ## Offline tests
 
-`python -m unittest discover -s tests -p test_branch_memory.py -v`
+```bash
+python -m unittest discover -s tests -p 'test_branch_memory*.py' -v
+```
 
 Includes a network-disabled integration test: independent duet -> comparison ->
 productive-difference Reflux -> retained fork -> selected-memory projection ->
 changed leader -> explicit hold. Other tests cover reopen, stale writes,
 non-destructive rewind, conflict-preserving merge, scope separation, condition
-revocation and no summary-as-primary-evidence laundering. No real generation.
+revocation, no summary-as-primary-evidence laundering, and transmission of the
+current reopening evidence without unrelated conditions. No real generation.
+
+The [focused review](INTERVENTION_REVIEW_2026_11_03.md) records the original missing
+condition-projection defect and its failing-before/passing-after regression
+checks. See the [next experiment plan](INTERVENTION_EXPERIMENT_PLAN.md) for the
+separate, not-yet-run semantic evaluation.
