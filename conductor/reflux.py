@@ -21,6 +21,9 @@ ROUTES = {
     "review_mismatch": "revise_review",
     "productive_difference": "fork",
 }
+# A corrected critique remains a critique. This does not grant reviewing status
+# to arbitrary revise_* purposes or relax the actual-author/receipt binding.
+REVIEW_PURPOSES = frozenset({"review", "critique", "source_audit", "revise_review"})
 
 
 @dataclass(frozen=True)
@@ -59,7 +62,7 @@ class RefluxController:
         replies = [r for r in s.replies() if r["output"] == finding.target.to_dict()]
         if len(replies) != 1:
             raise ContractError("Target lacks a unique request receipt")
-        if finding.kind == "review_mismatch" and replies[0]["purpose"] not in {"review", "critique", "source_audit"}:
+        if finding.kind == "review_mismatch" and replies[0]["purpose"] not in REVIEW_PURPOSES:
             raise ContractError("Review mismatch must target the actual reviewing role")
         data = {"kind": finding.kind, "target": finding.target.to_dict(),
                 "evidence": [r.to_dict() for r in evidence], "reason": finding.reason,
