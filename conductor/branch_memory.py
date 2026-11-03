@@ -193,7 +193,7 @@ class BranchMemory:
 
     def open_round(self, branch: str, selected: tuple[ArtifactRef, ...], mode: str, purpose: str,
                    reason: str, *, expected_revision: int) -> ArtifactRef:
-        """Project selected nodes/content only, not the entire branch or private state."""
+        """Project selected nodes, their current conditions and primary evidence."""
         self.session.check_revision(expected_revision)
         selected = unique_refs(selected)
         if not selected:
@@ -204,9 +204,20 @@ class BranchMemory:
             raise ContractError("Memory selection crosses branch boundary")
         if mode not in MODES:
             raise ContractError("Unknown duet mode")
+        latest = {n["data"]["name"]: n for n in self.session.notes("narrative.condition.v1")}
         refs = list(selected)
         for ref in selected:
-            refs.extend(ArtifactRef.from_dict(r) for r in self.node(ref)["evidence"])
+            node = self.node(ref)
+            refs.extend(ArtifactRef.from_dict(r) for r in node["evidence"])
+            # Preserve why the host is reconsidering this node. Only conditions
+            # named by selected nodes are projected, using their latest explicit
+            # assessment (including unknown/unsatisfied) and its content evidence.
+            # This neither changes disposition nor promotes an assessment to truth.
+            for name in node["reopen_on"]:
+                condition = latest.get(name)
+                if condition is not None:
+                    refs.append(ArtifactRef.from_dict(condition["ref"]))
+                    refs.extend(ArtifactRef.from_dict(r) for r in condition["data"]["evidence"])
         return BreathController(self.session).open_round(mode, purpose, reason,
                                                          refs=tuple(dict.fromkeys(refs)),
                                                          expected_revision=expected_revision)
